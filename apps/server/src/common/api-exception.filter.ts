@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import type { ApiError } from "@drm/contracts";
 import type { Request, Response } from "express";
+import { Prisma } from "../generated/prisma/client.js";
 import { ApiException } from "./api-exception.js";
 
 /** HttpException 상태 → 공통 오류 코드 (프레임워크가 던지는 404, 413 등 대응) */
@@ -58,6 +59,15 @@ export class ApiExceptionFilter implements ExceptionFilter {
           correlationId,
           ...exception.extra,
         },
+      };
+    } else if (
+      exception instanceof Prisma.PrismaClientKnownRequestError &&
+      exception.code === "P2002"
+    ) {
+      // 유니크 제약 위반: 동시 요청 경쟁 등. 어떤 컬럼인지는 노출하지 않습니다.
+      status = HttpStatus.CONFLICT;
+      body = {
+        error: { code: "CONFLICT", message: "이미 존재하는 데이터와 충돌합니다.", correlationId },
       };
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();

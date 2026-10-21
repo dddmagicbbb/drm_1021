@@ -1,8 +1,10 @@
+import { config } from "dotenv";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { loadEnv } from "../src/config/env.js";
 import { SmtpMailer } from "../src/mail/mailer.js";
 
+config({ path: ["../../.env", ".env"], quiet: true });
 const mailpitApi = process.env.MAILPIT_API_URL;
 
 /** 로컬(docker compose)·CI의 Mailpit으로 실제 SMTP 발송을 확인합니다. */
