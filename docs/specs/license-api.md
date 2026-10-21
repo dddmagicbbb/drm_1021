@@ -86,10 +86,12 @@
 
 | 메서드 | 경로 | 요청 | 응답 |
 |---|---|---|---|
+| GET | `/recipient/documents` | — | `RecipientDocument[]` (지금 열람 가능한 문서) |
 | GET | `/recipient/documents/:docId/package` | — | `application/octet-stream` (.drm) |
 | POST | `/licenses` | `LicenseRequest` | 200 `SignedLicense` / 403 `ApiError` |
 
-* `.drm` 다운로드도 정책 엔진을 통과해야 한다(기기 조건 제외).
+* `.drm` 다운로드와 문서 목록도 정책 엔진을 통과해야 한다(기기 조건 제외).
+* 안내 메일에는 다운로드 링크를 넣지 않는다. 수신자는 뷰어에서 OTP로 로그인한 뒤 목록에서 내려받는다.
 * 라이선스 거부 응답은 `code`에 거부 사유, `contact`에 발신자 이름·이메일을 담는다.
 * 라이선스 발급 한도: 수신자당 분당 60회.
 

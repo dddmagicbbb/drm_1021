@@ -12,6 +12,13 @@ export const WorkerEnvSchema = z.object({
   SIGNING_KEYRING_PATH: z.string().min(1).default("../../.local/signing-keyring.json"),
   /** 동시에 처리할 패키징 작업 수 */
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(2),
+  SMTP_HOST: z.string().min(1),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  MAIL_FROM: z.string().min(1).default("DRM <no-reply@drm.local>"),
+  /** 안내 메일에 넣을 전용 뷰어 설치 페이지 */
+  VIEWER_DOWNLOAD_URL: z.string().url().default("https://drm.local/viewer"),
 });
 export type WorkerEnv = z.infer<typeof WorkerEnvSchema>;
 

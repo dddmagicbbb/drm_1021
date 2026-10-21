@@ -32,3 +32,14 @@ export type Document = z.infer<typeof DocumentSchema>;
 
 /** 파일당 최대 업로드 크기 (FR-101) */
 export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024;
+
+/** 수신자가 열람 가능한 문서 (뷰어 문서 목록) */
+export const RecipientDocumentSchema = z.object({
+  docId: IdSchema,
+  fileName: z.string(),
+  contentType: PackagedContentTypeSchema,
+  distributionTitle: z.string(),
+  validUntil: IsoDateTimeSchema,
+  sender: z.object({ name: z.string(), email: z.string() }),
+});
+export type RecipientDocument = z.infer<typeof RecipientDocumentSchema>;

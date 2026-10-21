@@ -168,6 +168,8 @@ model Document {
   wrappedCek     Bytes?
   kmsKeyId       String?
   revokedAt      DateTime?
+  /// 수신자 안내 메일 발송(또는 발송 선점) 시각
+  notifiedAt     DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   licenses       License[]

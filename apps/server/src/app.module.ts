@@ -18,6 +18,7 @@ import { KeysModule } from "./keys/keys.module.js";
 import { LicensesModule } from "./licenses/licenses.module.js";
 import { MailModule } from "./mail/mail.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
+import { RecipientModule } from "./recipient/recipient.module.js";
 import { StorageModule } from "./storage/storage.module.js";
 
 @Module({})
@@ -53,6 +54,7 @@ export class AppModule implements NestModule {
         DistributionsModule,
         LicensesModule,
         DocumentsModule,
+        RecipientModule,
       ],
       controllers: [HealthController],
       providers: [{ provide: ENV, useValue: env }],
