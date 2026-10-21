@@ -12,11 +12,13 @@ import { RequestContextMiddleware } from "./common/request-context.js";
 import { ENV, type Env } from "./config/env.js";
 import { DevicesModule } from "./devices/devices.module.js";
 import { DistributionsModule } from "./distributions/distributions.module.js";
+import { DocumentsModule } from "./documents/documents.module.js";
 import { HealthController } from "./health/health.controller.js";
 import { KeysModule } from "./keys/keys.module.js";
 import { LicensesModule } from "./licenses/licenses.module.js";
 import { MailModule } from "./mail/mail.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
+import { StorageModule } from "./storage/storage.module.js";
 
 @Module({})
 export class AppModule implements NestModule {
@@ -44,11 +46,13 @@ export class AppModule implements NestModule {
         PrismaModule,
         AuditModule,
         KeysModule,
+        StorageModule,
         MailModule,
         AuthModule,
         DevicesModule,
         DistributionsModule,
         LicensesModule,
+        DocumentsModule,
       ],
       controllers: [HealthController],
       providers: [{ provide: ENV, useValue: env }],

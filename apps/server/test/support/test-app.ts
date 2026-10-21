@@ -11,10 +11,14 @@ import pg from "pg";
 import { configureApp } from "../../src/app.factory.js";
 import { AppModule } from "../../src/app.module.js";
 import { loadEnv, type Env } from "../../src/config/env.js";
+import { PACKAGING_QUEUE_TOKEN } from "../../src/documents/packaging-queue.js";
+import { InMemoryPackagingQueue } from "./queue.js";
 
 export interface TestContext {
   app: INestApplication;
   env: Env;
+  /** 등록된 패키징 작업 (기본은 메모리 큐) */
+  queue: InMemoryPackagingQueue;
   /** 테스트 전용 스키마에 직접 질의 (검증용) */
   query: <T extends pg.QueryResultRow = pg.QueryResultRow>(
     sql: string,
@@ -60,12 +64,16 @@ export const createTestApp = async (options: TestAppOptions = {}): Promise<TestC
     // 테스트마다 별도 키링 (개발용 키링을 건드리지 않음)
     KMS_KEYRING_PATH: join(tmpdir(), "drm-test", schema, "kms-keyring.json"),
     SIGNING_KEYRING_PATH: join(tmpdir(), "drm-test", schema, "signing-keyring.json"),
+    STORAGE_DIR: join(tmpdir(), "drm-test", schema, "storage"),
     ...options.env,
   });
 
   let builder = Test.createTestingModule({
     imports: [AppModule.forRoot(env), ...(options.imports ?? [])],
   });
+  // 기본적으로 Redis 대신 메모리 큐를 사용합니다. (options.providers로 덮어쓸 수 있음)
+  const queue = new InMemoryPackagingQueue();
+  builder = builder.overrideProvider(PACKAGING_QUEUE_TOKEN).useValue(queue);
   for (const [token, value] of options.providers ?? []) {
     builder = builder.overrideProvider(token).useValue(value);
   }
@@ -80,6 +88,7 @@ export const createTestApp = async (options: TestAppOptions = {}): Promise<TestC
   return {
     app,
     env,
+    queue,
     query: (sql, params) => admin.query(sql, params as unknown[]),
     close: async () => {
       await app.close();

@@ -21,6 +21,10 @@ export const EnvSchema = z.object({
   KMS_KEYRING_PATH: z.string().min(1).default("../../.local/kms-keyring.json"),
   /** 개발용 로컬 서명 키링 (운영에서는 사용 불가) */
   SIGNING_KEYRING_PATH: z.string().min(1).default("../../.local/signing-keyring.json"),
+  /** 업로드 원본·패키지 저장 위치 (로컬 디스크) */
+  STORAGE_DIR: z.string().min(1).default("../../.local/storage"),
+  /** BullMQ 작업 큐 */
+  REDIS_URL: z.string().url(),
 });
 export type Env = z.infer<typeof EnvSchema>;
 
