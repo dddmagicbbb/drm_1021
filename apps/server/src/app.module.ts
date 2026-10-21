@@ -1,12 +1,19 @@
-import { type DynamicModule, Module } from "@nestjs/common";
+import {
+  type DynamicModule,
+  type MiddlewareConsumer,
+  Module,
+  type NestModule,
+} from "@nestjs/common";
 import { LoggerModule } from "nestjs-pino";
+import { AuditModule } from "./audit/audit.module.js";
 import { correlationIdFor } from "./common/correlation-id.js";
+import { RequestContextMiddleware } from "./common/request-context.js";
 import { ENV, type Env } from "./config/env.js";
 import { HealthController } from "./health/health.controller.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
 
 @Module({})
-export class AppModule {
+export class AppModule implements NestModule {
   /** 환경 변수를 주입받아 모듈을 구성합니다. 테스트에서 DB 등을 바꿔 끼우기 위함입니다. */
   static forRoot(env: Env): DynamicModule {
     return {
@@ -29,10 +36,15 @@ export class AppModule {
           },
         }),
         PrismaModule,
+        AuditModule,
       ],
       controllers: [HealthController],
       providers: [{ provide: ENV, useValue: env }],
       exports: [ENV],
     };
+  }
+
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestContextMiddleware).forRoutes("*path");
   }
 }

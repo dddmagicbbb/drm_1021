@@ -1,9 +1,11 @@
 import type { INestApplication } from "@nestjs/common";
+import { Test } from "@nestjs/testing";
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
 import pg from "pg";
-import { createApp } from "../../src/app.factory.js";
+import { configureApp } from "../../src/app.factory.js";
+import { AppModule } from "../../src/app.module.js";
 import { loadEnv, type Env } from "../../src/config/env.js";
 
 export interface TestContext {
@@ -17,11 +19,17 @@ export interface TestContext {
   close: () => Promise<void>;
 }
 
+export interface TestAppOptions {
+  env?: Partial<Record<keyof Env, string>>;
+  /** DI 토큰 → 대체 구현 (메일러 등) */
+  providers?: [token: unknown, value: unknown][];
+}
+
 /**
  * 테스트 파일마다 독립된 PostgreSQL 스키마를 만들고 마이그레이션을 적용한 뒤 앱을 띄웁니다.
  * 종료 시 스키마를 삭제합니다. (감사 로그 트리거 때문에 TRUNCATE로 정리할 수 없음)
  */
-export const createTestApp = async (overrides: Partial<Record<keyof Env, string>> = {}) => {
+export const createTestApp = async (options: TestAppOptions = {}): Promise<TestContext> => {
   const base = loadEnv({ NODE_ENV: "test", LOG_LEVEL: "silent" });
   const schema = `test_${randomBytes(6).toString("hex")}`;
   const url = new URL(base.DATABASE_URL);
@@ -39,9 +47,15 @@ export const createTestApp = async (overrides: Partial<Record<keyof Env, string>
     NODE_ENV: "test",
     LOG_LEVEL: "silent",
     DATABASE_URL: databaseUrl,
-    ...overrides,
+    ...options.env,
   });
-  const app = await createApp(env);
+
+  let builder = Test.createTestingModule({ imports: [AppModule.forRoot(env)] });
+  for (const [token, value] of options.providers ?? []) {
+    builder = builder.overrideProvider(token).useValue(value);
+  }
+  const moduleRef = await builder.compile();
+  const app = configureApp(moduleRef.createNestApplication({ bufferLogs: true }));
   await app.init();
 
   const admin = new pg.Client({ connectionString: base.DATABASE_URL });
@@ -57,5 +71,5 @@ export const createTestApp = async (overrides: Partial<Record<keyof Env, string>
       await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
       await admin.end();
     },
-  } satisfies TestContext;
+  };
 };
