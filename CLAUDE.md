@@ -27,6 +27,7 @@
 
 ```
 apps/       실행 앱 (server, worker, portal, viewer-desktop, viewer-web)
+           worker: `pnpm --filter @drm/worker build && pnpm --filter @drm/worker start` (서버와 같은 .env 사용)
 packages/   공용 라이브러리 (@drm/contracts, @drm/crypto, @drm/container, @drm/kms, @drm/db, @drm/storage, @drm/renderer)
 docs/       PRD, 아키텍처, 스펙
 ```

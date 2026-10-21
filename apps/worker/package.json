@@ -1,0 +1,25 @@
+{
+  "name": "@drm/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@drm/container": "workspace:*",
+    "@drm/contracts": "workspace:*",
+    "@drm/crypto": "workspace:*",
+    "@drm/db": "workspace:*",
+    "@drm/kms": "workspace:*",
+    "@drm/storage": "workspace:*",
+    "bullmq": "^6.3.19",
+    "dotenv": "^18.0.8",
+    "ioredis": "^6.0.0",
+    "pino": "^10.4.0",
+    "zod": "^4.6.7"
+  }
+}

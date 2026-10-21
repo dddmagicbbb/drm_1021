@@ -123,15 +123,9 @@ importers:
       '@types/nodemailer':
         specifier: ^8.0.2
         version: 8.0.2
-      '@types/pg':
-        specifier: ^8.23.1
-        version: 8.23.1
       '@types/supertest':
         specifier: ^7.2.1
         version: 7.2.1
-      pg:
-        specifier: ^8.23.1
-        version: 8.23.1
       pino-pretty:
         specifier: ^13.2.0
         version: 13.2.0
@@ -141,6 +135,42 @@ importers:
       unplugin-swc:
         specifier: ^2.0.0
         version: 2.0.0(@swc/core@1.16.18)(rolldown@1.2.14)(vite@8.3.4(@types/node@26.6.5)(jiti@2.7.0))
+
+  apps/worker:
+    dependencies:
+      '@drm/container':
+        specifier: workspace:*
+        version: link:../../packages/container
+      '@drm/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@drm/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
+      '@drm/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@drm/kms':
+        specifier: workspace:*
+        version: link:../../packages/kms
+      '@drm/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      bullmq:
+        specifier: ^6.3.19
+        version: 6.3.19(ioredis@6.0.0)(pg@8.23.1)
+      dotenv:
+        specifier: ^18.0.8
+        version: 18.0.8
+      ioredis:
+        specifier: ^6.0.0
+        version: 6.0.0
+      pino:
+        specifier: ^10.4.0
+        version: 10.4.0
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
 
   packages/container:
     dependencies:
@@ -170,7 +200,13 @@ importers:
       '@prisma/client':
         specifier: 7.10.1
         version: 7.10.1(prisma@7.10.1(@types/node@26.6.5)(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(typescript@6.0.3)
+      pg:
+        specifier: ^8.23.1
+        version: 8.23.1
     devDependencies:
+      '@types/pg':
+        specifier: ^8.23.1
+        version: 8.23.1
       dotenv:
         specifier: ^18.0.8
         version: 18.0.8
