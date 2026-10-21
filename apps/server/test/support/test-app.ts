@@ -1,4 +1,4 @@
-import type { INestApplication } from "@nestjs/common";
+import type { INestApplication, Type } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -23,6 +23,8 @@ export interface TestAppOptions {
   env?: Partial<Record<keyof Env, string>>;
   /** DI 토큰 → 대체 구현 (메일러 등) */
   providers?: [token: unknown, value: unknown][];
+  /** 테스트 전용 모듈 (가드 검증용 컨트롤러 등) */
+  imports?: Type[];
 }
 
 /**
@@ -50,7 +52,9 @@ export const createTestApp = async (options: TestAppOptions = {}): Promise<TestC
     ...options.env,
   });
 
-  let builder = Test.createTestingModule({ imports: [AppModule.forRoot(env)] });
+  let builder = Test.createTestingModule({
+    imports: [AppModule.forRoot(env), ...(options.imports ?? [])],
+  });
   for (const [token, value] of options.providers ?? []) {
     builder = builder.overrideProvider(token).useValue(value);
   }

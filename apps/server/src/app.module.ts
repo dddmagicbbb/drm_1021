@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { LoggerModule } from "nestjs-pino";
 import { AuditModule } from "./audit/audit.module.js";
+import { AuthModule } from "./auth/auth.module.js";
 import { correlationIdFor } from "./common/correlation-id.js";
 import { RequestContextMiddleware } from "./common/request-context.js";
 import { ENV, type Env } from "./config/env.js";
@@ -37,6 +38,7 @@ export class AppModule implements NestModule {
         }),
         PrismaModule,
         AuditModule,
+        AuthModule,
       ],
       controllers: [HealthController],
       providers: [{ provide: ENV, useValue: env }],

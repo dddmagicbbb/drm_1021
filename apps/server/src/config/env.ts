@@ -7,6 +7,8 @@ export const EnvSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   DATABASE_URL: z.string().url(),
+  /** access 토큰(JWT HS256) 서명 비밀값 */
+  JWT_SECRET: z.string().min(32, "32자 이상이어야 합니다"),
 });
 export type Env = z.infer<typeof EnvSchema>;
 

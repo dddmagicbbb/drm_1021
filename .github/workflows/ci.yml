@@ -33,6 +33,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://drm:drm_ci_only@127.0.0.1:5432/drm?schema=public
+      JWT_SECRET: ci-only-jwt-secret-0123456789abcdefghij
     steps:
       - uses: actions/checkout@v4
 
