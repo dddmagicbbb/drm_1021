@@ -29,6 +29,13 @@ export default tseslint.config(
     },
   },
   {
+    // Node에서 직접 실행하는 빌드 스크립트
+    files: ["**/scripts/**/*.mjs", "eslint.config.mjs"],
+    languageOptions: {
+      globals: { process: "readonly", Buffer: "readonly", console: "readonly", fetch: "readonly" },
+    },
+  },
+  {
     // Electron sandbox preload는 CommonJS여야 하므로 import = require 문법을 허용합니다.
     files: ["**/*.cts"],
     rules: {
