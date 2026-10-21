@@ -51,3 +51,6 @@ Thumbs.db
 # 로컬 개발용 키·키링 (절대 커밋 금지)
 .local/
 *.keyring.json
+
+# Prisma 생성 코드
+apps/server/src/generated/

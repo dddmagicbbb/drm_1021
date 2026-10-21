@@ -1,3 +1,10 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# 설치 스크립트 실행을 허용할 의존성 (네이티브 바이너리·엔진 다운로드가 필요한 것만)
+onlyBuiltDependencies:
+  - "@prisma/engines"
+  - "@swc/core"
+  - argon2
+  - prisma

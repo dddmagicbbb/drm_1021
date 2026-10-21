@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // NestJS DI는 데코레이터 메타데이터를 사용합니다.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    // 메타데이터 참조 대상 클래스가 type-only import로 바뀌지 않도록 해제합니다.
+    "verbatimModuleSyntax": false,
+    "isolatedModules": false
+  },
+  "include": ["src", "test"]
+}

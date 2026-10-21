@@ -16,6 +16,23 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # 서버 통합 테스트용 DB (테스트 파일마다 별도 스키마를 생성)
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: drm
+          POSTGRES_PASSWORD: drm_ci_only
+          POSTGRES_DB: drm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U drm -d drm"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://drm:drm_ci_only@127.0.0.1:5432/drm?schema=public
     steps:
       - uses: actions/checkout@v4
 

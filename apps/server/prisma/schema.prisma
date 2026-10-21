@@ -1,0 +1,246 @@
+// DRM 서버 데이터 모델
+// 공용 enum 값은 @drm/contracts 와 동일하게 유지합니다.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SecurityLevel {
+  NORMAL
+  CONFIDENTIAL
+}
+
+enum SourceFormat {
+  PDF
+  DOCX
+  XLSX
+  PPTX
+}
+
+enum DocumentStatus {
+  UPLOADED
+  CONVERTING
+  PACKAGED
+  FAILED
+}
+
+enum DevicePlatform {
+  WINDOWS
+  WEB
+}
+
+enum SubjectType {
+  SENDER
+  RECIPIENT
+}
+
+enum ActorType {
+  SENDER
+  RECIPIENT
+  SYSTEM
+}
+
+enum AuditEventType {
+  SENDER_LOGIN_SUCCEEDED
+  SENDER_LOGIN_FAILED
+  DISTRIBUTION_CREATED
+  DISTRIBUTION_UPDATED
+  DISTRIBUTION_REVOKED
+  RECIPIENT_ADDED
+  RECIPIENT_REMOVED
+  RECIPIENT_REVOKED
+  DOCUMENT_UPLOADED
+  DOCUMENT_PACKAGED
+  DOCUMENT_PACKAGING_FAILED
+  DOCUMENT_REVOKED
+  OTP_REQUESTED
+  OTP_VERIFIED
+  OTP_FAILED
+  DEVICE_REGISTERED
+  DEVICE_REVOKED
+  LICENSE_ISSUED
+  LICENSE_DENIED
+}
+
+/// 발신자 (사내 사용자)
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  email         String         @unique
+  name          String
+  passwordHash  String
+  disabledAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  distributions Distribution[]
+
+  @@map("users")
+}
+
+/// refresh 토큰 (해시만 저장, 회전·재사용 탐지)
+model RefreshToken {
+  id          String      @id @default(uuid()) @db.Uuid
+  tokenHash   Bytes       @unique
+  /// 같은 로그인에서 회전된 토큰 계열. 재사용 탐지 시 계열 전체 폐기
+  family      String      @db.Uuid
+  subjectType SubjectType
+  subjectId   String      @db.Uuid
+  expiresAt   DateTime
+  usedAt      DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime    @default(now())
+
+  @@index([family])
+  @@index([subjectType, subjectId])
+  @@map("refresh_tokens")
+}
+
+/// 수신자 (고객사 사용자). 내부 식별자는 id이며 이메일은 속성입니다.
+model Recipient {
+  id            String                  @id @default(uuid()) @db.Uuid
+  email         String                  @unique
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  distributions DistributionRecipient[]
+  devices       Device[]
+  licenses      License[]
+
+  @@map("recipients")
+}
+
+/// 배포 건
+model Distribution {
+  id                String                  @id @default(uuid()) @db.Uuid
+  title             String
+  createdById       String                  @db.Uuid
+  createdBy         User                    @relation(fields: [createdById], references: [id])
+  validFrom         DateTime
+  validUntil        DateTime
+  allowWeb          Boolean
+  securityLevel     SecurityLevel
+  offlineGraceHours Int
+  maxViews          Int?
+  maxDevices        Int
+  revokedAt         DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  recipients        DistributionRecipient[]
+  documents         Document[]
+
+  @@index([createdById, createdAt])
+  @@map("distributions")
+}
+
+/// 배포 건 ↔ 수신자
+model DistributionRecipient {
+  distributionId String       @db.Uuid
+  distribution   Distribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  recipientId    String       @db.Uuid
+  recipient      Recipient    @relation(fields: [recipientId], references: [id])
+  addedAt        DateTime     @default(now())
+  revokedAt      DateTime?
+
+  @@id([distributionId, recipientId])
+  @@index([recipientId])
+  @@map("distribution_recipients")
+}
+
+/// 문서 (업로드 원본 → 패키징된 .drm)
+model Document {
+  id             String         @id @default(uuid()) @db.Uuid
+  distributionId String         @db.Uuid
+  distribution   Distribution   @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  fileName       String
+  sourceFormat   SourceFormat
+  sourceSize     BigInt
+  status         DocumentStatus @default(UPLOADED)
+  failureReason  String?
+  /// 패키징 결과 (PACKAGED 상태에서만 값이 있음)
+  contentType    String?
+  packagePath    String?
+  packageSize    BigInt?
+  /// KMS로 래핑된 CEK와 마스터키 버전
+  wrappedCek     Bytes?
+  kmsKeyId       String?
+  revokedAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  licenses       License[]
+
+  @@index([distributionId])
+  @@map("documents")
+}
+
+/// 수신자 기기 (X25519 공개키)
+model Device {
+  id          String         @id @default(uuid()) @db.Uuid
+  recipientId String         @db.Uuid
+  recipient   Recipient      @relation(fields: [recipientId], references: [id])
+  publicKey   Bytes          @unique
+  name        String
+  platform    DevicePlatform
+  revokedAt   DateTime?
+  lastSeenAt  DateTime?
+  createdAt   DateTime       @default(now())
+  licenses    License[]
+
+  @@index([recipientId])
+  @@map("devices")
+}
+
+/// 발급된 라이선스 (열람 횟수 집계·감사용, CEK는 저장하지 않음)
+model License {
+  id          String    @id @default(uuid()) @db.Uuid
+  documentId  String    @db.Uuid
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  recipientId String    @db.Uuid
+  recipient   Recipient @relation(fields: [recipientId], references: [id])
+  deviceId    String    @db.Uuid
+  device      Device    @relation(fields: [deviceId], references: [id])
+  issuedAt    DateTime  @default(now())
+  expiresAt   DateTime
+
+  @@index([documentId, recipientId])
+  @@map("licenses")
+}
+
+/// 수신자 OTP (HMAC 해시만 저장)
+model OtpChallenge {
+  id         String    @id @default(uuid()) @db.Uuid
+  email      String
+  codeHash   Bytes
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  ip         String?
+  createdAt  DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@map("otp_challenges")
+}
+
+/// 감사 로그 (append-only: DB 트리거로 UPDATE/DELETE 차단)
+model AuditEvent {
+  id             String         @id @default(uuid()) @db.Uuid
+  type           AuditEventType
+  actorType      ActorType
+  actorId        String?        @db.Uuid
+  distributionId String?        @db.Uuid
+  documentId     String?        @db.Uuid
+  recipientId    String?        @db.Uuid
+  deviceId       String?        @db.Uuid
+  ip             String?
+  correlationId  String?
+  detail         Json
+  occurredAt     DateTime       @default(now())
+
+  @@index([occurredAt])
+  @@index([distributionId, occurredAt])
+  @@index([recipientId, occurredAt])
+  @@map("audit_events")
+}
