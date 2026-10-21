@@ -28,4 +28,11 @@ export default tseslint.config(
       "@typescript-eslint/consistent-type-imports": "off",
     },
   },
+  {
+    // Electron sandbox preload는 CommonJS여야 하므로 import = require 문법을 허용합니다.
+    files: ["**/*.cts"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 );
