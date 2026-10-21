@@ -1,0 +1,45 @@
+# 로컬 개발용 인프라. 운영 환경에서는 사용하지 않습니다.
+# 다른 로컬 서비스와 충돌하지 않도록 호스트 포트는 5xxxx 대역을 기본값으로 사용합니다.
+name: drm
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-drm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-drm_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-drm}
+    ports:
+      - "${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-56379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # 개발용 SMTP 서버. 발송 메일은 http://localhost:58025 에서 확인합니다.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${SMTP_PORT:-51025}:1025"
+      - "${MAILPIT_UI_PORT:-58025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:

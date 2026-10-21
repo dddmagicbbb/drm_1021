@@ -19,7 +19,7 @@
 | 전체 테스트 | `pnpm test` |
 | 특정 패키지 테스트 | `pnpm --filter @drm/<패키지> test` |
 | 린트 / 포맷 | `pnpm lint` / `pnpm format` |
-| 로컬 인프라 | `docker compose up -d` (PostgreSQL, Redis, Mailpit) |
+| 로컬 인프라 | `cp .env.example .env` 후 `docker compose up -d --wait` (PostgreSQL :55432, Redis :56379, Mailpit SMTP :51025 / UI :58025) |
 
 ## 구조
 
