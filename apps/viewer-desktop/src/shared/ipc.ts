@@ -38,7 +38,7 @@ export interface OpenedDocument {
   contentType: PackagedContentType;
   watermark: string;
   /** 복호화된 콘텐츠 (메모리 전용, 디스크에 쓰지 않음) */
-  data: ArrayBuffer;
+  data: Uint8Array;
 }
 
 export interface DocumentClosedEvent {

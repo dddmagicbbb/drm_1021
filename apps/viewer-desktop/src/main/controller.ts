@@ -6,21 +6,14 @@ import { EmailSchema, OtpVerifyRequestSchema } from "@drm/contracts";
 import type { AuthStatus, IpcResult, ViewerError } from "../shared/ipc.js";
 import { type DeviceIdentity, ensureDevice } from "./device.js";
 import type { SecretStore } from "./secret-store.js";
+import { viewerErrorOf } from "./document-session.js";
 import { type ServerApi, ServerApiError } from "./server-api.js";
 
 /** 예외를 렌더러용 결과로 변환 (내부 오류 상세는 숨김) */
-export const toIpcError = (error: unknown): ViewerError => {
-  if (error instanceof ServerApiError) {
-    return {
-      code: error.code,
-      message: error.message,
-      ...(error.contact ? { contact: error.contact } : {}),
-    };
-  }
-  if (error instanceof ViewerInputError)
-    return { code: "VALIDATION_FAILED", message: error.message };
-  return { code: "INTERNAL_ERROR", message: "처리 중 오류가 발생했습니다." };
-};
+export const toIpcError = (error: unknown): ViewerError =>
+  error instanceof ViewerInputError
+    ? { code: "VALIDATION_FAILED", message: error.message }
+    : viewerErrorOf(error);
 
 export class ViewerInputError extends Error {}
 
