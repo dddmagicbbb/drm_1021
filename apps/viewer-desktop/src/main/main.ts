@@ -2,23 +2,83 @@
  * 뷰어 main 프로세스
  * 복호화·키 처리는 모두 이곳에서 하며, 렌더러에는 IPC로 필요한 결과만 전달합니다.
  */
-import { BrowserWindow, Menu, app, ipcMain, session } from "electron";
+import { BrowserWindow, Menu, app, ipcMain, safeStorage, session } from "electron";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { z } from "zod";
+import { IPC, type DocumentClosedEvent } from "../shared/ipc.js";
+import { asResult } from "./controller.js";
+import { DocumentController } from "./documents.js";
+import { findDrmPath } from "./file-args.js";
 import {
   RENDERER_CSP,
   createWindowOptions,
   isAllowedNavigation,
   shouldBlockInput,
 } from "./hardening.js";
+import type { TrustedKeys } from "./license.js";
+import { EncryptedFileStore } from "./secret-store.js";
+import { ServerApi } from "./server-api.js";
+import { loadTrustedKeys } from "./trusted-keys.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 /** 패키징된 빌드에서는 개발자 도구를 막습니다. (DRM_VIEWER_DEVTOOLS=1은 개발용) */
 const allowDevTools = !app.isPackaged && process.env.DRM_VIEWER_DEVTOOLS === "1";
 const indexPath = join(here, "../renderer/index.html");
 const indexUrl = pathToFileURL(indexPath).toString();
+/** 운영 서버 주소는 빌드 설정으로 주입합니다. 개발 기본값은 로컬 서버 */
+const serverUrl = process.env.DRM_SERVER_URL ?? "http://127.0.0.1:3000";
 
 let mainWindow: BrowserWindow | null = null;
+
+const secrets = new EncryptedFileStore(join(app.getPath("userData"), "secure"), safeStorage);
+const api = new ServerApi(serverUrl, secrets);
+
+let trustedKeys: Promise<TrustedKeys> | null = null;
+const getTrustedKeys = () => {
+  trustedKeys ??= loadTrustedKeys({
+    filePath: app.isPackaged
+      ? join(process.resourcesPath, "trusted-keys.json")
+      : join(here, "../../trusted-keys.json"),
+    allowServerFetch: !app.isPackaged,
+    fetchFromServer: () => api.signingKeys(),
+  }).catch((error: unknown) => {
+    trustedKeys = null;
+    throw error;
+  });
+  return trustedKeys;
+};
+
+const controller = new DocumentController(api, secrets, getTrustedKeys, (docId, error) => {
+  const event: DocumentClosedEvent = { docId, error };
+  mainWindow?.webContents.send(IPC.documentClosed, event);
+});
+
+/** 렌더러 입력은 신뢰하지 않고 검증합니다. */
+const Str = z.string().max(500);
+const Uuid = z.uuid();
+
+const registerIpc = (): void => {
+  const fromMainWindow = (event: Electron.IpcMainInvokeEvent) =>
+    event.sender === mainWindow?.webContents &&
+    isAllowedNavigation(event.senderFrame?.url ?? "", indexUrl);
+  const handle = <T>(channel: string, fn: (...args: unknown[]) => Promise<T>) =>
+    ipcMain.handle(channel, async (event, ...args) => {
+      if (!fromMainWindow(event)) throw new Error("허용되지 않은 호출");
+      return asResult(() => fn(...args));
+    });
+
+  handle(IPC.authStatus, () => controller.authStatus());
+  handle(IPC.requestOtp, (email) => controller.requestOtp(Str.parse(email)));
+  handle(IPC.verifyOtp, (email, code) => controller.verifyOtp(Str.parse(email), Str.parse(code)));
+  handle(IPC.logout, () => controller.logout());
+  handle(IPC.listDocuments, () => controller.listDocuments());
+  handle(IPC.openRemote, (docId, fileName) =>
+    controller.openRemote(Uuid.parse(docId), Str.optional().parse(fileName)),
+  );
+  handle(IPC.openPendingFile, () => controller.openPendingFile());
+  handle(IPC.closeDocument, async () => controller.closeDocument());
+};
 
 const createMainWindow = async (): Promise<BrowserWindow> => {
   const win = new BrowserWindow(
@@ -40,6 +100,8 @@ const createMainWindow = async (): Promise<BrowserWindow> => {
   if (!allowDevTools) {
     contents.on("devtools-opened", () => contents.closeDevTools());
   }
+  // 렌더러가 재시작되면(충돌 등) 열려 있던 평문을 지웁니다.
+  contents.on("render-process-gone", () => controller.closeDocument());
 
   win.once("ready-to-show", () => win.show());
   await win.loadFile(indexPath);
@@ -65,7 +127,15 @@ const hardenSession = (): void => {
   ses.on("will-download", (event) => event.preventDefault());
 };
 
-// 하나의 인스턴스만 실행 (두 번째 실행 시 기존 창으로 파일 전달은 T1-21에서 처리)
+/** 파일 더블클릭으로 받은 .drm을 보관하고 렌더러에 알림 */
+const acceptFileArg = (argv: readonly string[]): void => {
+  const path = findDrmPath(argv);
+  if (!path) return;
+  controller.setPendingFile(path);
+  mainWindow?.webContents.send(IPC.pendingFile);
+};
+
+// 하나의 인스턴스만 실행. 두 번째 실행의 .drm 경로는 기존 창으로 전달합니다.
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -74,19 +144,25 @@ if (!app.requestSingleInstanceLock()) {
     contents.on("will-attach-webview", (event) => event.preventDefault());
   });
 
-  app.on("second-instance", () => {
+  app.on("second-instance", (_event, argv) => {
+    acceptFileArg(argv);
     if (mainWindow?.isMinimized()) mainWindow.restore();
     mainWindow?.focus();
   });
 
-  app.on("window-all-closed", () => app.quit());
+  app.on("window-all-closed", () => {
+    controller.closeDocument();
+    app.quit();
+  });
 
   void app.whenReady().then(async () => {
     Menu.setApplicationMenu(null);
     hardenSession();
-    ipcMain.handle("app:version", () => app.getVersion());
+    registerIpc();
+    acceptFileArg(process.argv);
     mainWindow = await createMainWindow();
     mainWindow.on("closed", () => {
+      controller.closeDocument();
       mainWindow = null;
     });
   });

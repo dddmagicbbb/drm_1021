@@ -15,6 +15,8 @@
     "@drm/container": "workspace:*",
     "@drm/contracts": "workspace:*",
     "@drm/crypto": "workspace:*",
+    "@drm/renderer": "workspace:*",
+    "pdfjs-dist": "^6.4.299",
     "zod": "^4.6.7"
   },
   "devDependencies": {

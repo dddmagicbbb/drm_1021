@@ -36,3 +36,132 @@ body {
   height: 100%;
   color: #fff;
 }
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.topbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px;
+  background: #1f2329;
+  color: #fff;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.muted-light {
+  color: #aab3c0;
+  font-size: 13px;
+}
+
+.panel {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 28px;
+  width: 400px;
+  max-width: calc(100% - 32px);
+  color: var(--text);
+}
+
+.panel.wide {
+  width: auto;
+  margin: 24px;
+  flex: 0 0 auto;
+}
+
+.panel h1 {
+  font-size: 20px;
+  margin-top: 0;
+}
+
+.panel h2 {
+  font-size: 16px;
+  margin-top: 0;
+}
+
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+
+input {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  user-select: text;
+}
+
+button {
+  font: inherit;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+}
+
+.topbar button {
+  background: #3a404a;
+  color: #fff;
+  border: 0;
+}
+
+button.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.selectable {
+  user-select: text;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.viewer__body {
+  flex: 1;
+  min-height: 0;
+}

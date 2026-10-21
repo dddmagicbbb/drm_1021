@@ -53,7 +53,7 @@ export interface DrmBridge {
   verifyOtp(email: string, code: string): Promise<IpcResult<AuthStatus>>;
   logout(): Promise<IpcResult<void>>;
   listDocuments(): Promise<IpcResult<RecipientDocument[]>>;
-  openRemote(docId: string): Promise<IpcResult<OpenedDocument>>;
+  openRemote(docId: string, fileName?: string): Promise<IpcResult<OpenedDocument>>;
   openPendingFile(): Promise<IpcResult<OpenedDocument | null>>;
   closeDocument(): Promise<IpcResult<void>>;
   onDocumentClosed(listener: (event: DocumentClosedEvent) => void): () => void;
