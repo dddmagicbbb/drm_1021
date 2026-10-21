@@ -10,7 +10,8 @@
     "LOG_LEVEL",
     "JWT_SECRET",
     "OTP_PEPPER",
-    "MAILPIT_API_URL"
+    "MAILPIT_API_URL",
+    "GOTENBERG_URL"
   ],
   "tasks": {
     "build": {

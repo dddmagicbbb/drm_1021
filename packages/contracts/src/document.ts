@@ -43,3 +43,9 @@ export const RecipientDocumentSchema = z.object({
   sender: z.object({ name: z.string(), email: z.string() }),
 });
 export type RecipientDocument = z.infer<typeof RecipientDocumentSchema>;
+
+/**
+ * 뷰어가 열 수 있는 콘텐츠 최대 크기 (1단계: 메모리 전체 복호화)
+ * 이보다 큰 문서는 패키징 단계에서 거부해 수신자가 열지 못하는 배포를 막습니다.
+ */
+export const MAX_VIEWABLE_BYTES = 512 * 1024 * 1024;

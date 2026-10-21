@@ -4,6 +4,7 @@
  * 실제로 연결하는 것: 서버(HTTP 포트), 워커 패키저·안내 메일, 뷰어 main 프로세스 로직, Mailpit(SMTP)
  * 대체하는 것: BullMQ 큐(메모리 큐에 쌓인 작업을 테스트가 워커 함수로 처리), Electron safeStorage(메모리)
  */
+import { makeTestPdf } from "@drm/contracts/testing";
 import { createPrismaClient, type PrismaClient } from "@drm/db";
 import { config } from "dotenv";
 import { createLocalKmsProvider, createLocalSigningKeyProvider } from "@drm/kms";
@@ -17,6 +18,9 @@ import { pino } from "pino";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PdfPassthroughConverter } from "../../../worker/src/converter.js";
+import { GotenbergOfficeConverter } from "../../../worker/src/gotenberg.js";
+import { inspectPdf } from "../../../worker/src/pdf-inspect.js";
+import { makeDocx, makePptx, makeXlsx } from "../../../worker/test/support/office-fixtures.js";
 import { Notifier, createSmtpMailer } from "../../../worker/src/notifier.js";
 import { Packager } from "../../../worker/src/packager.js";
 import { DocumentController } from "../../../viewer-desktop/src/main/documents.js";
@@ -106,7 +110,9 @@ describe.runIf(mailpit)("E2E 시나리오 (T1-28)", () => {
 
   // 원본 PDF에 고유 표식을 넣어, 평문이 디스크 어딘가에 남는지 추적합니다.
   const marker = Buffer.from(`DRM-E2E-MARKER-${randomUUID()}`);
-  const pdf = Buffer.concat([Buffer.from("%PDF-1.7\n"), marker, randomBytes(300_000), marker]);
+  const pdf = Buffer.from(
+    makeTestPdf({ pages: 2, payload: Buffer.concat([marker, randomBytes(300_000), marker]) }),
+  );
 
   const http = () => request(ctx.app.getHttpServer());
 
@@ -158,7 +164,17 @@ describe.runIf(mailpit)("E2E 시나리오 (T1-28)", () => {
         keyringPath: ctx.env.SIGNING_KEYRING_PATH,
         nodeEnv: "test",
       }),
-      converters: [new PdfPassthroughConverter()],
+      converters: [
+        new PdfPassthroughConverter(),
+        ...(process.env.GOTENBERG_URL
+          ? [
+              new GotenbergOfficeConverter({
+                baseUrl: process.env.GOTENBERG_URL,
+                timeoutMs: 120_000,
+              }),
+            ]
+          : []),
+      ],
       logger,
     });
     const mailer = createSmtpMailer({
@@ -323,6 +339,73 @@ describe.runIf(mailpit)("E2E 시나리오 (T1-28)", () => {
     expect(await filesContaining(ctx.env.STORAGE_DIR, marker, startedAt)).toEqual([]);
     expect(await filesContaining(tmpdir(), marker, startedAt)).toEqual([]);
   });
+
+  it.runIf(process.env.GOTENBERG_URL)(
+    "Office 문서(DOCX·XLSX·PPTX)를 PDF로 변환해 배포하고 뷰어에서 연다",
+    async () => {
+      const recipient = `e2e-office-${randomUUID().slice(0, 8)}@customer.co.kr`;
+      const now = Date.now();
+      const dist = await http()
+        .post("/api/v1/distributions")
+        .set("Authorization", senderAuth)
+        .send({
+          title: "Office 문서 송부",
+          recipients: [recipient],
+          policy: {
+            validFrom: new Date(now - 60_000).toISOString(),
+            validUntil: new Date(now + 86400_000).toISOString(),
+            allowWeb: true,
+            securityLevel: "NORMAL",
+            offlineGraceHours: 0,
+            maxViews: null,
+            maxDevices: 2,
+          },
+        });
+      const files: [string, Buffer][] = [
+        ["사양서.docx", makeDocx("A사 설비 사양서")],
+        [
+          "부품표.xlsx",
+          makeXlsx([
+            ["품목", "수량"],
+            ["볼트 M8", "120"],
+          ]),
+        ],
+        ["검토회의.pptx", makePptx("2차 설계 검토")],
+      ];
+      for (const [name, content] of files) {
+        const res = await http()
+          .post(`/api/v1/distributions/${dist.body.id}/documents`)
+          .set("Authorization", senderAuth)
+          .attach("file", content, { filename: name });
+        expect(res.status, name).toBe(202);
+      }
+      await runWorker();
+
+      const detail = await http()
+        .get(`/api/v1/distributions/${dist.body.id}`)
+        .set("Authorization", senderAuth);
+      expect(detail.body.documents.map((d: { status: string }) => d.status)).toEqual([
+        "PACKAGED",
+        "PACKAGED",
+        "PACKAGED",
+      ]);
+
+      // 안내 메일 1통에 세 문서가 함께 안내됨
+      const notice = await waitForMail(recipient, "문서를 보냈습니다");
+      for (const [name] of files) expect(notice).toContain(name);
+
+      const viewer = await loginViewer(recipient);
+      const docs = await viewer.controller.listDocuments();
+      expect(docs.map((d) => d.contentType)).toEqual(Array(3).fill("application/pdf"));
+      for (const d of docs) {
+        const opened = await viewer.controller.openRemote(d.docId, `${d.fileName}.drm`);
+        expect(Buffer.from(opened.data.subarray(0, 5)).toString()).toBe("%PDF-");
+        expect((await inspectPdf(Buffer.from(opened.data))).pages).toBeGreaterThanOrEqual(1);
+        viewer.controller.closeDocument();
+      }
+    },
+    300_000,
+  );
 
   it("열람 중 회수되면 재발급 시점에 뷰어가 문서를 닫는다 (S4)", async () => {
     const recipient = `e2e-r-${randomUUID().slice(0, 8)}@customer.co.kr`;

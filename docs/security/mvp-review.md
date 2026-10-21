@@ -25,6 +25,7 @@
 | F2 | `trust proxy`가 항상 켜져 있었음 | 프록시 없이 운영 시 `X-Forwarded-For` 위조로 OTP IP 한도 우회·감사 로그 IP 오염 | `TRUST_PROXY_HOPS` 환경 변수(기본 0)로 변경 |
 | F3 | `.drm` 다운로드·거부가 감사 로그에 남지 않았음 (E2E에서 발견) | 유출 조사(S7) 시 추적 공백 | `DOCUMENT_DOWNLOADED`, `DOCUMENT_DOWNLOAD_DENIED` 이벤트 추가(마이그레이션 포함) |
 | F4 | API 응답에 보안 헤더 없음 | MIME 스니핑, 프레이밍, 토큰 응답 캐시 | nosniff, X-Frame-Options, CSP, Referrer-Policy, CORP, `Cache-Control: no-store`, 운영 HSTS. 테스트 추가 |
+| F6 | 암호·손상 PDF를 패키징 단계에서 걸러내지 못했음 (수신자가 열 때 실패) | 열 수 없는 문서 배포 | 워커가 pdf.js로 실제로 열어 검사, 암호·손상·빈 문서·512MB 초과를 사유와 함께 FAILED 처리 (Office 변환 결과에도 적용) |
 | F5 | 포털에 CSP 없음 (refresh 토큰이 sessionStorage에 있음) | XSS 발생 시 토큰 외부 유출 용이 | 운영 빌드에 CSP 삽입(외부 스크립트·외부 연결 차단) |
 
 ## 3. 잔여 위험 (수용 또는 후속 단계)
@@ -39,7 +40,7 @@
 | R6 | 발신자 로그인 잠금은 이메일 단위 | 여러 계정을 번갈아 시도하는 공격(credential stuffing)은 IP 단위로 막지 않습니다. | 운영 앞단(WAF·리버스 프록시)에서 IP 속도 제한, 2단계 SSO 도입 |
 | R7 | 포털 refresh 토큰 sessionStorage 보관 | CSP로 위험을 줄였지만 XSS 시 탈취 가능합니다. | 2단계 SSO 도입 시 httpOnly 쿠키 + CSRF 토큰 방식으로 전환 검토 |
 | R8 | 코드 서명 미적용 | 현재 설치 파일은 서명되지 않아 SmartScreen 경고가 뜨고, 변조 여부를 사용자가 확인할 수 없습니다. | 파일럿 전 코드 서명 인증서 발급, CI 비밀값으로 주입 |
-| R9 | 실제 Office 변환 미검증 | Gotenberg 변환기는 API 스텁으로만 검증했습니다. | 파일럿 환경에서 Gotenberg 기동 후 샘플 문서로 검증 |
+| R9 | ~~실제 Office 변환 미검증~~ | 해결: 실제 Gotenberg로 DOCX·XLSX·PPTX 변환과 한글 보존을 자동 테스트로 검증, E2E에 Office 배포·열람 시나리오 추가 | 사내 실제 문서(복잡한 서식·글꼴)로 파일럿에서 품질 확인 |
 
 ## 4. 확인된 보안 통제 요약
 

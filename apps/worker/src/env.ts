@@ -20,7 +20,7 @@ export const WorkerEnvSchema = z.object({
   /** 안내 메일에 넣을 전용 뷰어 설치 페이지 */
   VIEWER_DOWNLOAD_URL: z.string().url().default("https://drm.local/viewer"),
   /** Office → PDF 변환 서버 (Gotenberg) */
-  GOTENBERG_URL: z.string().url().default("http://127.0.0.1:53000"),
+  GOTENBERG_URL: z.string().url().default("http://127.0.0.1:53300"),
   CONVERSION_TIMEOUT_MS: z.coerce.number().int().min(1000).default(120_000),
 });
 export type WorkerEnv = z.infer<typeof WorkerEnvSchema>;

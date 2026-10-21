@@ -535,7 +535,7 @@ AI 코딩 도구(Claude Code 등)로 개발하는 것을 전제로, **AI가 한 
 
 | 작업 | 계획 | 실제 | 사유 |
 |---|---|---|---|
-| T1-15 | LibreOffice 워커 이미지 | Gotenberg(LibreOffice HTTP 서버) 연동, API 스텁으로 검증 | 검증된 이미지 재사용. 실제 이미지 기동 검증은 파일럿 전 수행 |
+| T1-15 | LibreOffice 워커 이미지 | Gotenberg(LibreOffice HTTP 서버) 연동, 실제 변환 자동 테스트(한글 보존) | 검증된 이미지 재사용 |
 | T1-17~19, T1-21~26 | Playwright E2E | Vitest + Testing Library(jsdom), 뷰어 main 로직 단위·통합 테스트 | 브라우저 바이너리 다운로드 회피. 실제 화면 E2E는 파일럿 수동 검증으로 대체 |
 | T1-28 | 전 구간 E2E | 서버·워커·뷰어 main 로직·Mailpit을 연결한 자동 시나리오 (큐·safeStorage만 대체) | Electron 화면 자동화 제외 |
 | 공용 패키지 | contracts·crypto·container·renderer | + kms·db·storage | 서버·워커·뷰어 공용 기능 분리 |

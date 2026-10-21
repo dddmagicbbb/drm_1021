@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing-pdf.d.ts",
+      "default": "./dist/testing-pdf.js"
     }
   },
   "files": [

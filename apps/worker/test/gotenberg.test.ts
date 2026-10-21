@@ -1,3 +1,4 @@
+import { makeTestPdf } from "@drm/contracts/testing";
 import { randomBytes } from "node:crypto";
 import { type Server, createServer } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -9,9 +10,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { PermanentPackagingError } from "../src/converter.js";
 import { CONVERSION_FAILED_MESSAGE, GotenbergOfficeConverter } from "../src/gotenberg.js";
 
-type Mode = "ok" | "bad-request" | "server-error" | "not-pdf" | "slow";
+type Mode = "ok" | "bad-request" | "server-error" | "unavailable" | "flaky" | "not-pdf" | "slow";
 
-const CONVERTED = Buffer.concat([Buffer.from("%PDF-1.7\n"), randomBytes(20_000)]);
+const CONVERTED = Buffer.from(makeTestPdf({ pages: 2, payload: randomBytes(20_000) }));
 const DOCX = Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), randomBytes(5000)]);
 
 const collect = async (stream: Readable) => {
@@ -25,6 +26,7 @@ describe("GotenbergOfficeConverter (T1-15)", () => {
   let server: Server;
   let baseUrl: string;
   let mode: Mode = "ok";
+  let requests = 0;
   let lastRequest: { path: string; contentType: string; body: Buffer } | null = null;
   let tempRoot: string;
 
@@ -52,7 +54,10 @@ describe("GotenbergOfficeConverter (T1-15)", () => {
           body: Buffer.concat(parts),
         };
         if (mode === "bad-request") return res.writeHead(400).end("LibreOffice failed");
-        if (mode === "server-error") return res.writeHead(503).end();
+        requests += 1;
+        if (mode === "server-error") return res.writeHead(500).end("uno exception");
+        if (mode === "unavailable") return res.writeHead(503).end();
+        if (mode === "flaky" && requests === 1) return res.writeHead(500).end("uno exception");
         if (mode === "not-pdf") return res.writeHead(200).end("<html>");
         if (mode === "slow") return setTimeout(() => res.writeHead(200).end(CONVERTED), 1000);
         res.writeHead(200, { "Content-Type": "application/pdf" }).end(CONVERTED);
@@ -64,6 +69,7 @@ describe("GotenbergOfficeConverter (T1-15)", () => {
 
   beforeEach(() => {
     mode = "ok";
+    requests = 0;
     lastRequest = null;
   });
 
@@ -109,8 +115,21 @@ describe("GotenbergOfficeConverter (T1-15)", () => {
     await expect(prepare()).rejects.toBeInstanceOf(PermanentPackagingError);
   });
 
-  it("5xx·시간 초과·연결 실패는 일시적 오류 (재시도 대상)", async () => {
-    for (const m of ["server-error", "slow"] as const) {
+  it("500이 반복되면 변환할 수 없는 문서(영구 오류), 한 번만 500이면 재시도로 성공", async () => {
+    mode = "server-error";
+    const error = await prepare().catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(PermanentPackagingError);
+    expect(requests).toBe(2);
+
+    mode = "flaky";
+    requests = 0;
+    const prepared = await prepare();
+    expect(prepared.size).toBe(CONVERTED.length);
+    await prepared.cleanup();
+  });
+
+  it("503·시간 초과·연결 실패는 일시적 오류 (재시도 대상)", async () => {
+    for (const m of ["unavailable", "slow"] as const) {
       mode = m;
       const error = await prepare().catch((e: unknown) => e);
       expect(error, m).toBeInstanceOf(Error);

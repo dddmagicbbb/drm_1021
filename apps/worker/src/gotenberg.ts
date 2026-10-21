@@ -4,7 +4,7 @@
  */
 import type { SourceFormat } from "@drm/contracts";
 import { createReadStream, createWriteStream, openAsBlob } from "node:fs";
-import { mkdtemp, open, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
@@ -15,12 +15,16 @@ import {
   PermanentPackagingError,
   type PreparedContent,
 } from "./converter.js";
+import { PDF_MESSAGES, inspectPdf } from "./pdf-inspect.js";
 
 const EXTENSIONS: Partial<Record<SourceFormat, string>> = {
   DOCX: "docx",
   XLSX: "xlsx",
   PPTX: "pptx",
 };
+
+/** 500 응답 시 추가 시도 횟수 */
+const CONVERSION_500_RETRIES = 1;
 
 export const CONVERSION_FAILED_MESSAGE =
   "문서를 PDF로 변환할 수 없습니다. 파일이 손상되었거나 암호가 걸려 있는지 확인하세요.";
@@ -51,21 +55,30 @@ export class GotenbergOfficeConverter implements ContentConverter {
       const sourcePath = join(dir, `source.${ext}`);
       await pipeline(await input.source(), createWriteStream(sourcePath, { mode: 0o600 }));
 
-      const form = new FormData();
-      form.append("files", await openAsBlob(sourcePath), `source.${ext}`);
+      const send = async (): Promise<Response> => {
+        const form = new FormData();
+        form.append("files", await openAsBlob(sourcePath), `source.${ext}`);
+        try {
+          return await fetch(`${this.options.baseUrl}/forms/libreoffice/convert`, {
+            method: "POST",
+            body: form,
+            signal: AbortSignal.timeout(this.options.timeoutMs),
+          });
+        } catch (error) {
+          // 연결 실패·시간 초과는 일시적 오류로 보고 재시도에 맡깁니다.
+          throw new Error("변환 서버에 연결할 수 없거나 응답이 없습니다.", { cause: error });
+        }
+      };
 
-      let res: Response;
-      try {
-        res = await fetch(`${this.options.baseUrl}/forms/libreoffice/convert`, {
-          method: "POST",
-          body: form,
-          signal: AbortSignal.timeout(this.options.timeoutMs),
-        });
-      } catch (error) {
-        // 연결 실패·시간 초과는 일시적 오류로 보고 재시도에 맡깁니다.
-        throw new Error("변환 서버에 연결할 수 없거나 응답이 없습니다.", { cause: error });
+      // Gotenberg는 손상·암호 문서에도 500을 반환하고, LibreOffice가 잠시 멈춰도 500을 반환합니다.
+      // 한 번 더 시도해도 500이면 변환할 수 없는 문서로 판정합니다. (503 등은 일시적 오류)
+      let res = await send();
+      for (let retry = 0; retry < CONVERSION_500_RETRIES && res.status === 500; retry += 1) {
+        await res.body?.cancel();
+        res = await send();
       }
-      if (res.status >= 400 && res.status < 500) {
+      if ((res.status >= 400 && res.status < 500) || res.status === 500) {
+        await res.body?.cancel();
         throw new PermanentPackagingError(CONVERSION_FAILED_MESSAGE, {
           cause: new Error(`Gotenberg ${res.status}`),
         });
@@ -77,8 +90,19 @@ export class GotenbergOfficeConverter implements ContentConverter {
         Readable.fromWeb(res.body as WebReadableStream<Uint8Array>),
         createWriteStream(outputPath, { mode: 0o600 }),
       );
-      await assertPdf(outputPath);
       const { size } = await stat(outputPath);
+      try {
+        // 변환 결과도 뷰어에서 열 수 있는지 확인합니다. (손상·빈 문서·크기 초과)
+        await inspectPdf(await readFile(outputPath));
+      } catch (error) {
+        if (
+          error instanceof PermanentPackagingError &&
+          error.userMessage === PDF_MESSAGES.tooLarge
+        ) {
+          throw error;
+        }
+        throw new PermanentPackagingError(CONVERSION_FAILED_MESSAGE, { cause: error });
+      }
 
       return {
         contentType: "application/pdf",
@@ -92,18 +116,3 @@ export class GotenbergOfficeConverter implements ContentConverter {
     }
   }
 }
-
-const assertPdf = async (path: string): Promise<void> => {
-  const file = await open(path, "r");
-  try {
-    const head = Buffer.alloc(5);
-    const { bytesRead } = await file.read(head, 0, 5, 0);
-    if (bytesRead < 5 || head.toString("ascii") !== "%PDF-") {
-      throw new PermanentPackagingError(CONVERSION_FAILED_MESSAGE, {
-        cause: new Error("변환 결과가 PDF가 아님"),
-      });
-    }
-  } finally {
-    await file.close();
-  }
-};

@@ -1,5 +1,6 @@
-import type { PackagedContentType, SourceFormat } from "@drm/contracts";
+import { MAX_VIEWABLE_BYTES, type PackagedContentType, type SourceFormat } from "@drm/contracts";
 import type { Readable } from "node:stream";
+import { PDF_MESSAGES, inspectPdf } from "./pdf-inspect.js";
 
 /** 패키징 직전의 콘텐츠 (중간 포맷) */
 export interface PreparedContent {
@@ -42,7 +43,14 @@ export class PermanentPackagingError extends Error {
   }
 }
 
-/** PDF는 변환 없이 그대로 패키징합니다. */
+/** 스트림 전체를 메모리로 읽습니다. (검사 대상 크기는 MAX_VIEWABLE_BYTES로 제한) */
+export const readAll = async (stream: Readable): Promise<Buffer> => {
+  const parts: Buffer[] = [];
+  for await (const part of stream) parts.push(part as Buffer);
+  return Buffer.concat(parts);
+};
+
+/** PDF는 변환 없이 그대로 패키징합니다. 단, 뷰어에서 열 수 있는지 먼저 검사합니다. */
 export class PdfPassthroughConverter implements ContentConverter {
   supports(format: SourceFormat): boolean {
     return format === "PDF";
@@ -50,6 +58,9 @@ export class PdfPassthroughConverter implements ContentConverter {
 
   async prepare(input: Parameters<ContentConverter["prepare"]>[0]): Promise<PreparedContent> {
     if (input.size === 0) throw new PermanentPackagingError("빈 파일입니다.");
+    if (input.size > MAX_VIEWABLE_BYTES) throw new PermanentPackagingError(PDF_MESSAGES.tooLarge);
+    // 검사용으로 읽은 사본은 버리고, 패키징은 저장소에서 다시 스트리밍합니다.
+    await inspectPdf(await readAll(await input.source()));
     return {
       contentType: "application/pdf",
       size: input.size,

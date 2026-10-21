@@ -21,7 +21,7 @@
 | 린트 / 포맷 | `pnpm lint` / `pnpm format` |
 | 발신자 계정 생성 | `pnpm --filter @drm/server build` 후 `pnpm --filter @drm/server sender:create -- --email <이메일> --name <이름>` (비밀번호는 표준 입력) |
 | 서버 테스트 | DB가 필요하므로 PowerShell에서 실행 (Bash 샌드박스는 로컬 포트 접속 불가) |
-| 로컬 인프라 | `cp .env.example .env` 후 `docker compose up -d --wait` (PostgreSQL :55432, Redis :56379, Mailpit SMTP :51025 / UI :58025) |
+| 로컬 인프라 | `cp .env.example .env` 후 `docker compose up -d --wait` (PostgreSQL :55432, Redis :56379, Mailpit SMTP :51025 / UI :58025, Gotenberg :53300) |
 
 ## 구조
 

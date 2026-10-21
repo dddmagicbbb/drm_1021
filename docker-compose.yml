@@ -45,7 +45,7 @@ services:
   gotenberg:
     image: gotenberg/gotenberg:8
     ports:
-      - "${GOTENBERG_PORT:-53000}:3000"
+      - "${GOTENBERG_PORT:-53300}:3000"
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
       interval: 10s

@@ -1,4 +1,5 @@
 import type { SourceFormat } from "@drm/contracts";
+import { makeTestPdf } from "@drm/contracts/testing";
 import { decryptContainer } from "@drm/container";
 import { type PrismaClient, createPrismaClient } from "@drm/db";
 import { type TestDatabase, createTestDatabase } from "@drm/db/testing";
@@ -19,8 +20,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PdfPassthroughConverter } from "../src/converter.js";
 import { loadWorkerEnv } from "../src/env.js";
 import { Packager, TRANSIENT_FAILURE_MESSAGE } from "../src/packager.js";
+import { PDF_MESSAGES } from "../src/pdf-inspect.js";
 
-const PDF = Buffer.concat([Buffer.from("%PDF-1.7\n"), randomBytes(3 * 1024 * 1024 + 123)]);
+const PDF = Buffer.from(makeTestPdf({ payload: randomBytes(3 * 1024 * 1024 + 123) }));
+/** 작은 정상 PDF */
+const smallPdf = () => Buffer.from(makeTestPdf({ payload: randomBytes(500) }));
 
 describe("패키저 (T1-14)", () => {
   let db: TestDatabase;
@@ -133,12 +137,14 @@ describe("패키저 (T1-14)", () => {
     expect(plaintext.equals(PDF)).toBe(true);
 
     // 패키지 파일에 평문이 그대로 들어있지 않음
-    expect(Buffer.concat(parts).includes(PDF.subarray(100, 200))).toBe(false);
+    expect(Buffer.concat(parts).includes(PDF.subarray(PDF.length / 2, PDF.length / 2 + 100))).toBe(
+      false,
+    );
     expect(await auditTypes(doc.id)).toEqual(["DOCUMENT_PACKAGED"]);
   });
 
   it("이미 처리된 문서는 건너뛴다 (멱등)", async () => {
-    const doc = await uploaded(PDF.subarray(0, 1000));
+    const doc = await uploaded(smallPdf());
     expect(await packager.package(doc.id)).toBe("PACKAGED");
     expect(await packager.package(doc.id)).toBe("SKIPPED");
     expect(await packager.package(randomUUID())).toBe("SKIPPED");
@@ -150,7 +156,7 @@ describe("패키저 (T1-14)", () => {
     ["원본 파일 없음", { skipFile: true }, "원본 파일을 찾을 수 없습니다."],
     ["변환기 없는 형식", { format: "DOCX" as const }, "지원하지 않는 형식입니다: DOCX"],
   ])("%s → FAILED, 사유 기록, 파일 정리", async (_label, options, reason) => {
-    const doc = await uploaded(PDF.subarray(0, 1000), options);
+    const doc = await uploaded(smallPdf(), options);
     expect(await packager.package(doc.id)).toBe("FAILED");
     const saved = await prisma.document.findUniqueOrThrow({ where: { id: doc.id } });
     expect(saved).toMatchObject({ status: "FAILED", failureReason: reason, wrappedCek: null });
@@ -159,8 +165,22 @@ describe("패키저 (T1-14)", () => {
     expect(await auditTypes(doc.id)).toEqual(["DOCUMENT_PACKAGING_FAILED"]);
   });
 
+  it.each([
+    ["암호가 걸린 PDF", Buffer.from(makeTestPdf({ encrypted: true })), PDF_MESSAGES.password],
+    [
+      "손상된 PDF",
+      Buffer.concat([Buffer.from("%PDF-1.7\n"), randomBytes(2000)]),
+      PDF_MESSAGES.invalid,
+    ],
+  ])("%s는 배포 전에 거부한다", async (_label, content, reason) => {
+    const doc = await uploaded(content);
+    expect(await packager.package(doc.id)).toBe("FAILED");
+    const saved = await prisma.document.findUniqueOrThrow({ where: { id: doc.id } });
+    expect(saved).toMatchObject({ status: "FAILED", failureReason: reason });
+  });
+
   it("일시적 오류는 예외로 던지고 불완전한 패키지를 남기지 않는다 (재시도 대상)", async () => {
-    const doc = await uploaded(PDF.subarray(0, 5000));
+    const doc = await uploaded(smallPdf());
     const flaky = new Packager({
       prisma,
       storage,
@@ -187,7 +207,7 @@ describe("패키저 (T1-14)", () => {
   });
 
   it("재시도를 모두 소진하면 FAILED로 표시한다", async () => {
-    const doc = await uploaded(PDF.subarray(0, 100));
+    const doc = await uploaded(smallPdf());
     await packager.markFailed(doc.id, doc.distributionId, TRANSIENT_FAILURE_MESSAGE);
     const saved = await prisma.document.findUniqueOrThrow({ where: { id: doc.id } });
     expect(saved).toMatchObject({ status: "FAILED", failureReason: TRANSIENT_FAILURE_MESSAGE });
