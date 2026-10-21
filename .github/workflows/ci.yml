@@ -31,9 +31,18 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       DATABASE_URL: postgresql://drm:drm_ci_only@127.0.0.1:5432/drm?schema=public
       JWT_SECRET: ci-only-jwt-secret-0123456789abcdefghij
+      OTP_PEPPER: ci-only-otp-pepper-0123456789abcdefghij
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: "1025"
+      MAILPIT_API_URL: http://127.0.0.1:8025
     steps:
       - uses: actions/checkout@v4
 

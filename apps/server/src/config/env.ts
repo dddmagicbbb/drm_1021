@@ -9,6 +9,14 @@ export const EnvSchema = z.object({
   DATABASE_URL: z.string().url(),
   /** access 토큰(JWT HS256) 서명 비밀값 */
   JWT_SECRET: z.string().min(32, "32자 이상이어야 합니다"),
+  /** 수신자 OTP HMAC 비밀값 */
+  OTP_PEPPER: z.string().min(32, "32자 이상이어야 합니다"),
+  SMTP_HOST: z.string().min(1),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535),
+  /** SMTP 인증 (운영 메일 서버용, 로컬 Mailpit은 불필요) */
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  MAIL_FROM: z.string().min(1).default("DRM <no-reply@drm.local>"),
 });
 export type Env = z.infer<typeof EnvSchema>;
 

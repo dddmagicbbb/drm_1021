@@ -37,3 +37,42 @@ export const recipientAuthHeader = async (ctx: TestContext, recipientId: string)
   const tokens = await ctx.app.get(TokenService).issue({ type: "RECIPIENT", id: recipientId });
   return `Bearer ${tokens.accessToken}`;
 };
+
+export interface DistributionFixtureOptions {
+  senderId: string;
+  recipients: string[];
+  validFrom?: Date;
+  validUntil?: Date;
+  revoked?: boolean;
+  maxDevices?: number;
+  maxViews?: number | null;
+}
+
+/** 배포 건과 수신자를 DB에 직접 생성 (API를 거치지 않는 준비용) */
+export const createDistribution = async (ctx: TestContext, options: DistributionFixtureOptions) => {
+  const prisma = ctx.app.get(PrismaService);
+  const now = Date.now();
+  return prisma.distribution.create({
+    data: {
+      title: "테스트 배포",
+      createdById: options.senderId,
+      validFrom: options.validFrom ?? new Date(now - 60_000),
+      validUntil: options.validUntil ?? new Date(now + 30 * 24 * 3600_000),
+      allowWeb: true,
+      securityLevel: "NORMAL",
+      offlineGraceHours: 0,
+      maxViews: options.maxViews ?? null,
+      maxDevices: options.maxDevices ?? 2,
+      revokedAt: options.revoked ? new Date() : null,
+      recipients: {
+        create: options.recipients.map((email) => ({
+          recipient: { connectOrCreate: { where: { email }, create: { email } } },
+        })),
+      },
+    },
+    include: { recipients: { include: { recipient: true } } },
+  });
+};
+
+export const uniqueEmail = (prefix = "user") =>
+  `${prefix}-${randomUUID().slice(0, 8)}@customer.co.kr`;

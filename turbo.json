@@ -8,7 +8,9 @@
     "MAIL_FROM",
     "NODE_ENV",
     "LOG_LEVEL",
-    "JWT_SECRET"
+    "JWT_SECRET",
+    "OTP_PEPPER",
+    "MAILPIT_API_URL"
   ],
   "tasks": {
     "build": {

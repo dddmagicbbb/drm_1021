@@ -11,6 +11,7 @@ import { correlationIdFor } from "./common/correlation-id.js";
 import { RequestContextMiddleware } from "./common/request-context.js";
 import { ENV, type Env } from "./config/env.js";
 import { HealthController } from "./health/health.controller.js";
+import { MailModule } from "./mail/mail.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
 
 @Module({})
@@ -38,6 +39,7 @@ export class AppModule implements NestModule {
         }),
         PrismaModule,
         AuditModule,
+        MailModule,
         AuthModule,
       ],
       controllers: [HealthController],
