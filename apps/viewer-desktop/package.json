@@ -6,20 +6,19 @@
   "type": "module",
   "main": "dist/main/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.main.json && vite build",
+    "build": "tsc -p tsconfig.main.json && vite build --config vite.main.config.ts && vite build",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
     "test": "vitest run",
-    "start": "electron ."
+    "start": "electron .",
+    "trusted-keys": "node scripts/export-trusted-keys.mjs",
+    "package:dir": "pnpm build && electron-builder --win --dir",
+    "package": "pnpm build && electron-builder --win"
   },
-  "dependencies": {
+  "devDependencies": {
     "@drm/container": "workspace:*",
     "@drm/contracts": "workspace:*",
     "@drm/crypto": "workspace:*",
     "@drm/renderer": "workspace:*",
-    "pdfjs-dist": "^6.4.299",
-    "zod": "^4.6.7"
-  },
-  "devDependencies": {
     "@electron/fuses": "^2.1.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -28,9 +27,57 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "^44.9.2",
+    "electron-builder": "^26.15.3",
     "jsdom": "^30.1.3",
+    "pdfjs-dist": "^6.4.299",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "vite": "^8.3.4"
+    "vite": "^8.3.4",
+    "zod": "^4.6.7"
+  },
+  "build": {
+    "appId": "com.example.drm1021.viewer",
+    "productName": "DRM 보안 뷰어",
+    "executableName": "drm-viewer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "trusted-keys.json",
+        "to": "trusted-keys.json"
+      }
+    ],
+    "afterPack": "./scripts/fuses.mjs",
+    "fileAssociations": [
+      {
+        "ext": "drm",
+        "name": "DRM 보안 문서",
+        "description": "DRM 보안 문서",
+        "role": "Viewer"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "signtoolOptions": {
+        "publisherName": "Example Corp"
+      }
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "DRM 보안 뷰어"
+    }
   }
 }

@@ -54,3 +54,7 @@ Thumbs.db
 
 # Prisma 생성 코드
 packages/db/src/generated/
+
+# 뷰어 빌드 산출물·개발용 신뢰 키 목록 (운영 키 목록은 CI에서 생성)
+apps/viewer-desktop/release/
+apps/viewer-desktop/trusted-keys.json
