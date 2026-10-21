@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { PackagedContentTypeSchema, type RecipientDocument } from "@drm/contracts";
 import { type ObjectStorage, storageKeys } from "@drm/storage";
 import type { Readable } from "node:stream";
+import { AuditService } from "../audit/audit.service.js";
 import { ApiException } from "../common/api-exception.js";
 import { DENY_MESSAGES, evaluateAccess } from "../policy/policy-engine.js";
 import { PrismaService } from "../prisma/prisma.service.js";
@@ -11,6 +12,7 @@ import { STORAGE } from "../storage/storage.module.js";
 export class RecipientDocumentsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
     @Inject(STORAGE) private readonly storage: ObjectStorage,
   ) {}
 
@@ -65,7 +67,20 @@ export class RecipientDocumentsService {
       { kind: "download" },
       new Date(),
     );
+    const auditBase = {
+      actorType: "RECIPIENT" as const,
+      actorId: recipientId,
+      recipientId,
+      distributionId: distribution.id,
+      documentId: docId,
+    };
     if (!decision.allowed) {
+      // 유출 조사(S7)를 위해 거부된 다운로드도 기록합니다.
+      await this.audit.record({
+        ...auditBase,
+        type: "DOCUMENT_DOWNLOAD_DENIED",
+        detail: { reason: decision.reason },
+      });
       const contact =
         decision.reason === "NOT_RECIPIENT"
           ? undefined
@@ -76,6 +91,11 @@ export class RecipientDocumentsService {
     const key = storageKeys.package(docId);
     const stat = await this.storage.stat(key);
     if (!stat) throw new Error(`PACKAGED 문서의 패키지 파일이 없습니다: ${docId}`);
+    await this.audit.record({
+      ...auditBase,
+      type: "DOCUMENT_DOWNLOADED",
+      detail: { size: stat.size },
+    });
     return {
       fileName: `${document.fileName}.drm`,
       size: stat.size,

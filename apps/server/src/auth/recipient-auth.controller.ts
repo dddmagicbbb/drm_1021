@@ -19,11 +19,14 @@ export class RecipientAuthController {
     private readonly tokens: TokenService,
   ) {}
 
-  /** 항상 202. 수신자 등록 여부를 노출하지 않습니다. */
+  /**
+   * 항상 즉시 202. 수신자 판정·메일 발송은 응답 이후 처리합니다.
+   * (등록된 수신자일 때만 처리 시간이 길어지면 응답 시간으로 수신자 여부가 드러나기 때문)
+   */
   @Post("otp/request")
   @HttpCode(202)
-  async requestOtp(@Body(new ZodValidationPipe(OtpRequestSchema)) body: OtpRequest): Promise<void> {
-    await this.otp.request(body.email);
+  requestOtp(@Body(new ZodValidationPipe(OtpRequestSchema)) body: OtpRequest): void {
+    this.otp.requestInBackground(body.email);
   }
 
   @Post("otp/verify")

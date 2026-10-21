@@ -25,6 +25,11 @@ export const EnvSchema = z.object({
   STORAGE_DIR: z.string().min(1).default("../../.local/storage"),
   /** BullMQ 작업 큐 */
   REDIS_URL: z.string().url(),
+  /**
+   * 앞단 리버스 프록시 단계 수. 0이면 X-Forwarded-For를 무시합니다.
+   * 프록시 없이 운영하면서 켜면 클라이언트가 IP를 위조해 발급 한도를 우회할 수 있습니다.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
 });
 export type Env = z.infer<typeof EnvSchema>;
 

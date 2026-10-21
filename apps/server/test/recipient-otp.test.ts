@@ -1,6 +1,7 @@
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
+  OtpService,
   OTP_LIMIT_PER_EMAIL_PER_HOUR,
   OTP_LIMIT_PER_IP_PER_HOUR,
   OTP_MAX_ATTEMPTS,
@@ -19,8 +20,15 @@ describe("수신자 OTP 인증 (T1-07)", () => {
 
   /** 테스트끼리 IP 한도를 공유하지 않도록 요청마다 다른 클라이언트 IP를 사용합니다. (trust proxy 1단계) */
   let ipSeq = 0;
-  const requestOtp = (email: string, ip = `198.51.100.${(ipSeq += 1) % 250}`) =>
-    http().post("/api/v1/recipient-auth/otp/request").set("X-Forwarded-For", ip).send({ email });
+  const requestOtp = async (email: string, ip = `198.51.100.${(ipSeq += 1) % 250}`) => {
+    const res = await http()
+      .post("/api/v1/recipient-auth/otp/request")
+      .set("X-Forwarded-For", ip)
+      .send({ email });
+    // 응답 이후 처리되는 발급 작업 완료를 기다립니다.
+    await ctx.app.get(OtpService).drain();
+    return res;
+  };
   const verifyOtp = (email: string, code: string) =>
     http().post("/api/v1/recipient-auth/otp/verify").send({ email, code });
 
@@ -81,6 +89,28 @@ describe("수신자 OTP 인증 (T1-07)", () => {
   });
 
   describe("계정 존재 여부 비노출", () => {
+    it("메일 발송을 기다리지 않고 응답한다 (응답 시간으로 수신자 여부가 드러나지 않음)", async () => {
+      const email = await eligibleRecipient();
+      let release!: () => void;
+      mailer.gate = new Promise((resolve) => {
+        release = resolve;
+      });
+      try {
+        const res = await http()
+          .post("/api/v1/recipient-auth/otp/request")
+          .set("X-Forwarded-For", "192.0.2.10")
+          .send({ email });
+        expect(res.status).toBe(202);
+        // 응답 시점에는 아직 발송되지 않음
+        expect(mailer.lastTo(email)).toBeUndefined();
+      } finally {
+        release();
+        mailer.gate = null;
+      }
+      await ctx.app.get(OtpService).drain();
+      expect(mailer.lastTo(email)).toBeDefined();
+    });
+
     it("등록되지 않은 이메일도 202를 받지만 메일은 발송되지 않는다", async () => {
       const email = uniqueEmail("stranger");
       const res = await requestOtp(email);

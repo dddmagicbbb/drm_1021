@@ -33,6 +33,18 @@ describe("서버 골격", () => {
     expect(invalid.headers["x-correlation-id"]).not.toBe("bad id with spaces");
   });
 
+  it("보안 헤더를 붙인다", async () => {
+    const res = await request(ctx.app.getHttpServer()).get("/api/v1/health");
+    expect(res.headers).toMatchObject({
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "cache-control": "no-store",
+    });
+    expect(res.headers["content-security-policy"]).toContain("default-src 'none'");
+    expect(res.headers["x-powered-by"]).toBeUndefined();
+  });
+
   it("없는 경로는 ApiError 형식의 404를 반환한다", async () => {
     const res = await request(ctx.app.getHttpServer())
       .get("/api/v1/nope")

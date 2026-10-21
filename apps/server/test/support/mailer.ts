@@ -4,8 +4,11 @@ import type { MailMessage, Mailer } from "../../src/mail/mailer.js";
 export class InMemoryMailer implements Mailer {
   readonly sent: MailMessage[] = [];
   failNext = false;
+  /** 값이 있으면 발송을 이 Promise가 끝날 때까지 붙잡습니다. (응답 시간 검증용) */
+  gate: Promise<void> | null = null;
 
   async send(message: MailMessage): Promise<void> {
+    if (this.gate) await this.gate;
     if (this.failNext) {
       this.failNext = false;
       throw new Error("SMTP 연결 실패 (테스트)");

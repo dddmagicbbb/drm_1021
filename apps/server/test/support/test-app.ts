@@ -45,6 +45,8 @@ export const createTestApp = async (options: TestAppOptions = {}): Promise<TestC
     KMS_KEYRING_PATH: join(workDir, "kms-keyring.json"),
     SIGNING_KEYRING_PATH: join(workDir, "signing-keyring.json"),
     STORAGE_DIR: join(workDir, "storage"),
+    // 테스트는 X-Forwarded-For로 클라이언트 IP를 바꿔 IP 한도를 검증합니다.
+    TRUST_PROXY_HOPS: "1",
     ...options.env,
   });
 
@@ -58,7 +60,7 @@ export const createTestApp = async (options: TestAppOptions = {}): Promise<TestC
     builder = builder.overrideProvider(token).useValue(value);
   }
   const moduleRef = await builder.compile();
-  const app = configureApp(moduleRef.createNestApplication({ bufferLogs: true }));
+  const app = configureApp(moduleRef.createNestApplication({ bufferLogs: true }), env);
   await app.init();
 
   return {

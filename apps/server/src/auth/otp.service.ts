@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger, type OnModuleDestroy } from "@nestjs/common";
 import { OTP_LENGTH, type TokenResponse } from "@drm/contracts";
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { AuditService } from "../audit/audit.service.js";
@@ -20,8 +20,9 @@ const HOUR_MS = 60 * 60 * 1000;
 type NotSentReason = "NOT_ELIGIBLE" | "EMAIL_RATE_LIMITED" | "IP_RATE_LIMITED" | "MAIL_FAILED";
 
 @Injectable()
-export class OtpService {
+export class OtpService implements OnModuleDestroy {
   private readonly logger = new Logger(OtpService.name);
+  private readonly inFlight = new Set<Promise<void>>();
   private readonly pepper: string;
 
   constructor(
@@ -32,6 +33,25 @@ export class OtpService {
     @Inject(ENV) env: Env,
   ) {
     this.pepper = env.OTP_PEPPER;
+  }
+
+  /**
+   * 응답과 분리해 OTP 요청을 처리합니다. 요청 컨텍스트(IP·추적 ID)는 비동기 흐름으로 이어집니다.
+   */
+  requestInBackground(email: string): void {
+    const task: Promise<void> = this.request(email)
+      .catch((error: unknown) => this.logger.error({ err: error }, "OTP 요청 처리 실패"))
+      .finally(() => this.inFlight.delete(task));
+    this.inFlight.add(task);
+  }
+
+  /** 처리 중인 OTP 요청이 끝날 때까지 대기 (종료 시·테스트용) */
+  async drain(): Promise<void> {
+    await Promise.all([...this.inFlight]);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.drain();
   }
 
   /**

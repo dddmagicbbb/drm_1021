@@ -300,8 +300,7 @@ describe.runIf(mailpit)("E2E 시나리오 (T1-28)", () => {
     });
 
     // ── 감사 로그: 전 과정이 기록됨 ─────────────────────────────────────
-    // 회수 후 열기는 .drm 다운로드 단계에서 먼저 거부되므로 LICENSE_DENIED는 남지 않습니다.
-    // (다운로드 거부 감사 기록은 T1-29 보안 점검의 개선 항목)
+    // 회수 후 열기는 .drm 다운로드 단계에서 먼저 거부됩니다. (DOCUMENT_DOWNLOAD_DENIED)
     const { rows } = await ctx.query<{ type: string }>(
       `SELECT DISTINCT type FROM audit_events WHERE "distributionId" = $1`,
       [distributionId],
@@ -311,6 +310,8 @@ describe.runIf(mailpit)("E2E 시나리오 (T1-28)", () => {
         "DISTRIBUTION_CREATED",
         "DISTRIBUTION_UPDATED",
         "DOCUMENT_PACKAGED",
+        "DOCUMENT_DOWNLOADED",
+        "DOCUMENT_DOWNLOAD_DENIED",
         "DOCUMENT_UPLOADED",
         "LICENSE_ISSUED",
         "RECIPIENT_ADDED",

@@ -26,6 +26,8 @@ export const AuditEventTypeSchema = z.enum([
   // 열람
   "LICENSE_ISSUED",
   "LICENSE_DENIED",
+  "DOCUMENT_DOWNLOADED",
+  "DOCUMENT_DOWNLOAD_DENIED",
 ]);
 export type AuditEventType = z.infer<typeof AuditEventTypeSchema>;
 

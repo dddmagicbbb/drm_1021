@@ -170,6 +170,7 @@ shared = X25519(devicePriv, ephPub) → 같은 HKDF로 KEK 계산 → AES-256-KW
 | `/recipient-auth/otp/verify` | `OTP_VERIFIED` / `OTP_FAILED` |
 | `/devices` | `DEVICE_REGISTERED` |
 | `/licenses` | `LICENSE_ISSUED` / `LICENSE_DENIED` (`detail.reason`) |
+| `/recipient/documents/:docId/package` | `DOCUMENT_DOWNLOADED` / `DOCUMENT_DOWNLOAD_DENIED` (`detail.reason`) |
 | 배포·문서 변경 | `DISTRIBUTION_*`, `RECIPIENT_*`, `DOCUMENT_*` |
 
 `detail`에 키, OTP, 비밀번호, 토큰, 문서 본문을 넣지 않는다.

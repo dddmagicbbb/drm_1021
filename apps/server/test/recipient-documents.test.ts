@@ -84,6 +84,12 @@ describe("수신자 문서 목록·다운로드 (T1-16)", () => {
       `filename*=UTF-8''${encodeURIComponent("도면.pdf.drm")}`,
     );
     expect(res.headers["cache-control"]).toBe("no-store");
+
+    const { rows } = await ctx.query(
+      `SELECT 1 FROM audit_events WHERE type = 'DOCUMENT_DOWNLOADED' AND "documentId" = $1`,
+      [document.id],
+    );
+    expect(rows).toHaveLength(1);
   });
 
   it("수신자가 아니면 403 NOT_RECIPIENT, 회수되면 사유와 연락처", async () => {
@@ -95,6 +101,11 @@ describe("수신자 문서 목록·다운로드 (T1-16)", () => {
     expect(denied.status).toBe(403);
     expect(denied.body.error.code).toBe("NOT_RECIPIENT");
     expect(denied.body.error.contact).toBeUndefined();
+    const { rows } = await ctx.query<{ detail: { reason: string } }>(
+      `SELECT detail FROM audit_events WHERE type = 'DOCUMENT_DOWNLOAD_DENIED' AND "documentId" = $1`,
+      [a.document.id],
+    );
+    expect(rows[0]?.detail).toEqual({ reason: "NOT_RECIPIENT" });
 
     await ctx.app.get(PrismaService).distribution.update({
       where: { id: a.dist.id },
