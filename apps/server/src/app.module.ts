@@ -11,6 +11,7 @@ import { correlationIdFor } from "./common/correlation-id.js";
 import { RequestContextMiddleware } from "./common/request-context.js";
 import { ENV, type Env } from "./config/env.js";
 import { DevicesModule } from "./devices/devices.module.js";
+import { DistributionsModule } from "./distributions/distributions.module.js";
 import { HealthController } from "./health/health.controller.js";
 import { MailModule } from "./mail/mail.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
@@ -43,6 +44,7 @@ export class AppModule implements NestModule {
         MailModule,
         AuthModule,
         DevicesModule,
+        DistributionsModule,
       ],
       controllers: [HealthController],
       providers: [{ provide: ENV, useValue: env }],
