@@ -41,5 +41,16 @@ services:
       timeout: 3s
       retries: 10
 
+  # Office → PDF 변환 서버 (LibreOffice). 변환 워커가 HTTP로 호출합니다.
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - "${GOTENBERG_PORT:-53000}:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres-data:
