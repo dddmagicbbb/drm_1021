@@ -1,0 +1,38 @@
+:root {
+  --bg: #2b2f36;
+  --surface: #ffffff;
+  --text: #1c2430;
+  --muted: #5d6878;
+  --border: #dde2e9;
+  --primary: #1f5eff;
+  --danger: #c62f2f;
+  font-family: "Pretendard", "Malgun Gothic", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  /* 텍스트·이미지 선택과 드래그 차단 (FR-503) */
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #fff;
+}
