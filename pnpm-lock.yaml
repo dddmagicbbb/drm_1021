@@ -50,6 +50,12 @@ importers:
 
   packages/crypto: {}
 
+  packages/kms:
+    dependencies:
+      '@drm/crypto':
+        specifier: workspace:*
+        version: link:../crypto
+
 packages:
 
   '@cacheable/memory@2.2.0':

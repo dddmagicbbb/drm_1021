@@ -47,3 +47,7 @@ Thumbs.db
 
 # Turborepo
 .turbo/
+
+# 로컬 개발용 키·키링 (절대 커밋 금지)
+.local/
+*.keyring.json

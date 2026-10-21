@@ -25,7 +25,7 @@
 
 ```
 apps/       실행 앱 (server, worker, portal, viewer-desktop, viewer-web)
-packages/   공용 라이브러리 (@drm/contracts, @drm/crypto, @drm/container, @drm/renderer)
+packages/   공용 라이브러리 (@drm/contracts, @drm/crypto, @drm/container, @drm/kms, @drm/renderer)
 docs/       PRD, 아키텍처, 스펙
 ```
 
