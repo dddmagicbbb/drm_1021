@@ -44,7 +44,7 @@ export const viewerErrorOf = (error: unknown): ViewerError => {
   if (error instanceof ContainerError) {
     return { code: error.code, message: "손상되었거나 변조된 문서 파일입니다." };
   }
-  return { code: "INTERNAL_ERROR", message: "문서를 여는 중 오류가 발생했습니다." };
+  return { code: "INTERNAL_ERROR", message: "처리 중 오류가 발생했습니다." };
 };
 
 export class DocumentSession {
