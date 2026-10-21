@@ -16,5 +16,9 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@drm/contracts": "workspace:*",
+    "@drm/crypto": "workspace:*"
   }
 }

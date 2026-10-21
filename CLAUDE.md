@@ -17,7 +17,7 @@
 | 전체 빌드 | `pnpm build` |
 | 전체 타입 검사 | `pnpm typecheck` |
 | 전체 테스트 | `pnpm test` |
-| 특정 패키지 테스트 | `pnpm --filter @drm/<패키지> test` |
+| 특정 패키지 테스트 | `pnpm turbo run test --filter=@drm/<패키지>` (의존 패키지를 먼저 빌드함. `pnpm --filter … test`는 의존 패키지 dist가 오래되면 실패) |
 | 린트 / 포맷 | `pnpm lint` / `pnpm format` |
 | 로컬 인프라 | `cp .env.example .env` 후 `docker compose up -d --wait` (PostgreSQL :55432, Redis :56379, Mailpit SMTP :51025 / UI :58025) |
 
