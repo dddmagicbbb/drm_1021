@@ -5,7 +5,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { ApiException } from "../common/api-exception.js";
 import { toBytes } from "../common/bytes.js";
 import { ENV, type Env } from "../config/env.js";
-import type { SubjectType } from "../generated/prisma/enums.js";
+import type { SubjectType } from "@drm/db";
 import { PrismaService } from "../prisma/prisma.service.js";
 
 /** access 토큰 유효 시간 (초) — docs/specs/license-api.md §2 */

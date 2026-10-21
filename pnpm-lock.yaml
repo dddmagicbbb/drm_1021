@@ -44,6 +44,9 @@ importers:
       '@drm/crypto':
         specifier: workspace:*
         version: link:../../packages/crypto
+      '@drm/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@drm/kms':
         specifier: workspace:*
         version: link:../../packages/kms
@@ -56,12 +59,6 @@ importers:
       '@nestjs/platform-express':
         specifier: ^12.2.0
         version: 12.2.0(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.2.0)
-      '@prisma/adapter-pg':
-        specifier: 7.10.1
-        version: 7.10.1
-      '@prisma/client':
-        specifier: 7.10.1
-        version: 7.10.1(prisma@7.10.1(@types/node@26.6.5)(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(typescript@6.0.3)
       argon2:
         specifier: ^0.45.1
         version: 0.45.1
@@ -123,9 +120,6 @@ importers:
       pino-pretty:
         specifier: ^13.2.0
         version: 13.2.0
-      prisma:
-        specifier: 7.10.1
-        version: 7.10.1(@types/node@26.6.5)(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3)
       supertest:
         specifier: ^7.3.1
         version: 7.3.1
@@ -149,6 +143,25 @@ importers:
         version: 4.6.7
 
   packages/crypto: {}
+
+  packages/db:
+    dependencies:
+      '@drm/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@prisma/adapter-pg':
+        specifier: 7.10.1
+        version: 7.10.1
+      '@prisma/client':
+        specifier: 7.10.1
+        version: 7.10.1(prisma@7.10.1(@types/node@26.6.5)(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(typescript@6.0.3)
+    devDependencies:
+      dotenv:
+        specifier: ^18.0.8
+        version: 18.0.8
+      prisma:
+        specifier: 7.10.1
+        version: 7.10.1(@types/node@26.6.5)(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3)
 
   packages/kms:
     dependencies:

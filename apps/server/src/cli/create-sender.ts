@@ -4,12 +4,11 @@
  * 비밀번호는 표준 입력으로 받습니다. (명령줄 인자로 받으면 셸 기록에 남기 때문)
  */
 import { EmailSchema } from "@drm/contracts";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { createInterface } from "node:readline/promises";
 import { parseArgs } from "node:util";
 import { MIN_PASSWORD_LENGTH, hashPassword } from "../auth/password.js";
 import { loadEnv } from "../config/env.js";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { createPrismaClient } from "@drm/db";
 
 const { values } = parseArgs({
   options: { email: { type: "string" }, name: { type: "string" } },
@@ -26,7 +25,7 @@ if (password.length < MIN_PASSWORD_LENGTH) {
 }
 
 const env = loadEnv();
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: env.DATABASE_URL }) });
+const prisma = createPrismaClient(env.DATABASE_URL);
 try {
   const user = await prisma.user.create({
     data: { email, name, passwordHash: await hashPassword(password) },

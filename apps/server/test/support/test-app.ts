@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { rm } from "node:fs/promises";
 import { createRequire } from "node:module";
 import pg from "pg";
@@ -41,9 +42,13 @@ export const createTestApp = async (options: TestAppOptions = {}): Promise<TestC
   url.searchParams.set("schema", schema);
   const databaseUrl = url.toString();
 
-  // 셸을 거치지 않고 Prisma CLI를 현재 Node로 직접 실행합니다.
-  const prismaCli = createRequire(import.meta.url).resolve("prisma/build/index.js");
+  // 셸을 거치지 않고 @drm/db 패키지의 Prisma CLI를 현재 Node로 직접 실행합니다.
+  const dbPackageDir = fileURLToPath(new URL("../../../../packages/db/", import.meta.url));
+  const prismaCli = createRequire(join(dbPackageDir, "package.json")).resolve(
+    "prisma/build/index.js",
+  );
   execFileSync(process.execPath, [prismaCli, "migrate", "deploy"], {
+    cwd: dbPackageDir,
     env: { ...process.env, DATABASE_URL: databaseUrl },
     stdio: "pipe",
   });

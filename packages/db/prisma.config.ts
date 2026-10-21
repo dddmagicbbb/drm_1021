@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import { defineConfig } from "prisma/config";
 
-// 저장소 루트의 .env를 사용합니다. (apps/server 에서 실행 기준)
+// 저장소 루트의 .env를 사용합니다. (packages/db 에서 실행 기준)
 config({ path: ["../../.env", ".env"], quiet: true });
 
 export default defineConfig({

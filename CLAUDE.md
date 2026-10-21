@@ -27,11 +27,12 @@
 
 ```
 apps/       실행 앱 (server, worker, portal, viewer-desktop, viewer-web)
-packages/   공용 라이브러리 (@drm/contracts, @drm/crypto, @drm/container, @drm/kms, @drm/renderer)
+packages/   공용 라이브러리 (@drm/contracts, @drm/crypto, @drm/container, @drm/kms, @drm/db, @drm/storage, @drm/renderer)
 docs/       PRD, 아키텍처, 스펙
 ```
 
 * 패키지 간 공유 타입·스키마는 반드시 `@drm/contracts`에 정의합니다. 앱에서 같은 타입을 다시 정의하지 않습니다.
+* DB 스키마·마이그레이션은 `packages/db/prisma`에 있습니다. 마이그레이션 생성: `cd packages/db && npx prisma migrate dev --name <이름>` (PowerShell)
 * 라이브러리 패키지는 ESM(`"type": "module"`), `tsc`로 `dist/`에 빌드합니다. 상대 import에는 `.js` 확장자를 붙입니다.
 
 ## 코드 규칙

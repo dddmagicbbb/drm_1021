@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { maskSensitive } from "./audit.service.js";
+import { maskSensitive } from "./audit.js";
 
 describe("maskSensitive", () => {
   it("민감한 이름의 필드를 재귀적으로 가린다", () => {

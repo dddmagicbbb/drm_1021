@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 import { ApiException } from "../common/api-exception.js";
-import type { SubjectType } from "../generated/prisma/enums.js";
+import type { SubjectType } from "@drm/db";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { type AuthSubject, TokenService } from "./token.service.js";
 

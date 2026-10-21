@@ -8,7 +8,7 @@ import {
 } from "@nestjs/common";
 import type { ApiError } from "@drm/contracts";
 import type { Request, Response } from "express";
-import { Prisma } from "../generated/prisma/client.js";
+import { Prisma } from "@drm/db";
 import { ApiException } from "./api-exception.js";
 
 /** HttpException 상태 → 공통 오류 코드 (프레임워크가 던지는 404, 413 등 대응) */

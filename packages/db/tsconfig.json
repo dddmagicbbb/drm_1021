@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // Prisma 생성 코드 호환
+    "verbatimModuleSyntax": false,
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src"]
+}

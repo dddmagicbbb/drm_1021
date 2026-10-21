@@ -9,7 +9,7 @@ import {
 } from "@drm/contracts";
 import { type AuditInput, AuditService } from "../audit/audit.service.js";
 import { ApiException } from "../common/api-exception.js";
-import type { Prisma } from "../generated/prisma/client.js";
+import type { Prisma } from "@drm/db";
 import { PrismaService } from "../prisma/prisma.service.js";
 import {
   policyColumns,

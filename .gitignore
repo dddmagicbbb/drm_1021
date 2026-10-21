@@ -53,4 +53,4 @@ Thumbs.db
 *.keyring.json
 
 # Prisma 생성 코드
-apps/server/src/generated/
+packages/db/src/generated/

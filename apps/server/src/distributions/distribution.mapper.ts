@@ -10,7 +10,7 @@ import type {
   DistributionRecipient as MembershipRow,
   Document as DocumentRow,
   Recipient as RecipientRow,
-} from "../generated/prisma/client.js";
+} from "@drm/db";
 
 const iso = (d: Date | null): string | null => (d ? d.toISOString() : null);
 
