@@ -76,3 +76,32 @@ export const createDistribution = async (ctx: TestContext, options: Distribution
 
 export const uniqueEmail = (prefix = "user") =>
   `${prefix}-${randomUUID().slice(0, 8)}@customer.co.kr`;
+
+/** 패키징 완료 상태의 문서를 만들고 CEK를 서버 KMS로 래핑해 저장 (워커 없이 라이선스 테스트용) */
+export const createPackagedDocument = async (
+  ctx: TestContext,
+  distributionId: string,
+  overrides: { status?: "UPLOADED" | "CONVERTING" | "PACKAGED" | "FAILED" } = {},
+) => {
+  const { generateCek } = await import("@drm/crypto");
+  const { KMS } = await import("../../src/keys/keys.module.js");
+  const kms = ctx.app.get<import("@drm/kms").KmsProvider>(KMS);
+  const prisma = ctx.app.get(PrismaService);
+  const id = randomUUID();
+  const cek = generateCek();
+  const wrapped = await kms.wrapKey(cek, { docId: id });
+  const document = await prisma.document.create({
+    data: {
+      id,
+      distributionId,
+      fileName: "도면.pdf",
+      sourceFormat: "PDF",
+      sourceSize: 1024n,
+      status: overrides.status ?? "PACKAGED",
+      contentType: "application/pdf",
+      wrappedCek: Uint8Array.from(wrapped.ciphertext),
+      kmsKeyId: wrapped.keyId,
+    },
+  });
+  return { document, cek };
+};

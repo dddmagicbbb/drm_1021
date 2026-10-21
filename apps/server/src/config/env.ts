@@ -17,6 +17,10 @@ export const EnvSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   MAIL_FROM: z.string().min(1).default("DRM <no-reply@drm.local>"),
+  /** 개발용 로컬 KMS 마스터키 키링 (운영에서는 사용 불가) */
+  KMS_KEYRING_PATH: z.string().min(1).default("../../.local/kms-keyring.json"),
+  /** 개발용 로컬 서명 키링 (운영에서는 사용 불가) */
+  SIGNING_KEYRING_PATH: z.string().min(1).default("../../.local/signing-keyring.json"),
 });
 export type Env = z.infer<typeof EnvSchema>;
 

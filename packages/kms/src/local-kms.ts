@@ -136,15 +136,22 @@ export const createLocalKmsProvider = async (
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT" && options.createIfMissing) {
       const keyring = generateLocalKeyring();
-      // 소유자만 읽을 수 있도록 생성 (POSIX). Windows에서는 무시됩니다.
-      await writeFile(options.keyringPath, JSON.stringify(keyring, null, 2), {
-        encoding: "utf8",
-        mode: 0o600,
-        flag: "wx",
-      });
-      return new LocalKmsProvider(keyring);
+      try {
+        // 소유자만 읽을 수 있도록 생성 (POSIX). Windows에서는 무시됩니다.
+        await writeFile(options.keyringPath, JSON.stringify(keyring, null, 2), {
+          encoding: "utf8",
+          mode: 0o600,
+          flag: "wx",
+        });
+        return new LocalKmsProvider(keyring);
+      } catch (writeError) {
+        // 다른 프로세스(서버·워커)가 먼저 만든 경우 그 파일을 사용합니다.
+        if ((writeError as NodeJS.ErrnoException).code !== "EEXIST") throw writeError;
+        raw = await readFile(options.keyringPath, "utf8");
+      }
+    } else {
+      throw new KmsError("INVALID_KEYRING", "키링 파일을 읽을 수 없습니다", { cause: error });
     }
-    throw new KmsError("INVALID_KEYRING", "키링 파일을 읽을 수 없습니다", { cause: error });
   }
   let keyring: LocalKeyring;
   try {

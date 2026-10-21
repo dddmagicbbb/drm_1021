@@ -2,6 +2,9 @@ import type { INestApplication, Type } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { rm } from "node:fs/promises";
 import { createRequire } from "node:module";
 import pg from "pg";
 import { configureApp } from "../../src/app.factory.js";
@@ -49,6 +52,9 @@ export const createTestApp = async (options: TestAppOptions = {}): Promise<TestC
     NODE_ENV: "test",
     LOG_LEVEL: "silent",
     DATABASE_URL: databaseUrl,
+    // 테스트마다 별도 키링 (개발용 키링을 건드리지 않음)
+    KMS_KEYRING_PATH: join(tmpdir(), "drm-test", schema, "kms-keyring.json"),
+    SIGNING_KEYRING_PATH: join(tmpdir(), "drm-test", schema, "signing-keyring.json"),
     ...options.env,
   });
 
@@ -74,6 +80,7 @@ export const createTestApp = async (options: TestAppOptions = {}): Promise<TestC
       await app.close();
       await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
       await admin.end();
+      await rm(join(tmpdir(), "drm-test", schema), { recursive: true, force: true });
     },
   };
 };
