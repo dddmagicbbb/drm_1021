@@ -13,6 +13,7 @@ import { dirname } from "node:path";
 import { pino } from "pino";
 import { PdfPassthroughConverter } from "./converter.js";
 import { loadWorkerEnv } from "./env.js";
+import { GotenbergOfficeConverter } from "./gotenberg.js";
 import { Notifier, createSmtpMailer } from "./notifier.js";
 import { Packager, TRANSIENT_FAILURE_MESSAGE } from "./packager.js";
 
@@ -34,7 +35,13 @@ const packager = new Packager({
     nodeEnv: env.NODE_ENV,
     createIfMissing: true,
   }),
-  converters: [new PdfPassthroughConverter()],
+  converters: [
+    new PdfPassthroughConverter(),
+    new GotenbergOfficeConverter({
+      baseUrl: env.GOTENBERG_URL,
+      timeoutMs: env.CONVERSION_TIMEOUT_MS,
+    }),
+  ],
   logger,
 });
 
