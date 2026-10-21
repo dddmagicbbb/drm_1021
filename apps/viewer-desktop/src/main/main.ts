@@ -26,8 +26,17 @@ const here = dirname(fileURLToPath(import.meta.url));
 const allowDevTools = !app.isPackaged && process.env.DRM_VIEWER_DEVTOOLS === "1";
 const indexPath = join(here, "../renderer/index.html");
 const indexUrl = pathToFileURL(indexPath).toString();
-/** 운영 서버 주소는 빌드 설정으로 주입합니다. 개발 기본값은 로컬 서버 */
-const serverUrl = process.env.DRM_SERVER_URL ?? "http://127.0.0.1:3000";
+/** 빌드 시 고정되는 서버 주소 (vite.main.config.ts의 define) */
+declare const __DRM_SERVER_URL__: string;
+/**
+ * 서버 주소: 설치 패키지는 빌드 시 고정한 주소만 사용합니다.
+ * 개발 실행에서만 DRM_SERVER_URL 환경 변수로 바꿀 수 있습니다.
+ */
+const serverUrl = (!app.isPackaged && process.env.DRM_SERVER_URL) || __DRM_SERVER_URL__;
+if (app.isPackaged && !serverUrl.startsWith("https://")) {
+  // 평문 HTTP로는 토큰·라이선스가 노출되므로 설치 패키지에서는 기동하지 않습니다.
+  throw new Error("서버 주소는 https:// 여야 합니다.");
+}
 
 let mainWindow: BrowserWindow | null = null;
 

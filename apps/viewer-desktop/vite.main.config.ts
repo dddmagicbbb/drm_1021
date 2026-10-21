@@ -6,6 +6,10 @@ import { defineConfig } from "vite";
  * electron과 Node 내장 모듈만 외부로 둡니다.
  */
 export default defineConfig({
+  // 서버 주소를 빌드 시 고정합니다. 예: DRM_SERVER_URL=https://drm.example.com pnpm package
+  define: {
+    __DRM_SERVER_URL__: JSON.stringify(process.env.DRM_SERVER_URL ?? "http://127.0.0.1:3000"),
+  },
   build: {
     outDir: "dist/main",
     emptyOutDir: true,
